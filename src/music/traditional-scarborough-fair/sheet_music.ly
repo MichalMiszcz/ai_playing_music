@@ -319,8 +319,7 @@ trackB = <<
 >>
 
 
-\score {\compressFullBarRests #t
-  
+\score {
   <<
     \context Staff=trackA \trackA
     \context Staff=trackB \trackB
