@@ -48,6 +48,7 @@ def convert_midi_to_sheet(midi_file, output_file, musescore_path="MuseScore4.exe
         sys.exit(1)
 
 
+# MIDI to MP3 can be converted the same way
 if __name__ == "__main__":
     midi_folder_path = "data/midi"
     pdf_folder_path = "data/pdf"
@@ -70,12 +71,3 @@ if __name__ == "__main__":
                 print(output_sheet_file)
 
                 convert_midi_to_sheet(input_midi_file, output_sheet_file, MUSESCORE_EXECUTABLE)
-
-
-    # output_sheet_path = "sheet_music.pdf"
-    #
-    # # If MuseScore is not added to your PATH, provide its full path:
-    # # musescore_executable = "C:\\Program Files\\MuseScore 4\\bin\\MuseScore4.exe"
-    # musescore_executable = "musescore4"
-    #
-    # convert_midi_to_sheet(midi_file_path, output_sheet_path, musescore_executable)
