@@ -4,4 +4,4 @@ To repozytorium jeset przeznaczone do projektu generowania muzyki na podstawie z
 
 W tym momencie pracuję nad konwerterem z plików midi do zapisu nutowego w celu wygenerowania zbioru danych uczących.
 
-W celu wykorzystania konwertera należy pobrać program *LilyPond* oraz dodać go do zmiennych środowiskowych.
+W celu wykorzystania konwertera należy pobrać program *MuseScore* oraz dodać go do zmiennych środowiskowych.
