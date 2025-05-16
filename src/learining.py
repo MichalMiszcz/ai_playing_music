@@ -8,6 +8,10 @@ import os
 import mido
 import random
 
+print(torch.__version__)
+print(torch.version.cuda)
+print(torch.cuda.is_available())
+
 # Check for GPU availability and set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -142,10 +146,10 @@ class CNNTransformerModel(nn.Module):
         return output
 
 # Training Loop
-def train_model(model, dataloader, epochs=10, device=device):
+def train_model(model, dataloader, epochs=3, device=device):
     model = model.to(device)
     criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=0.02)
 
     i = 0
     for epoch in range(epochs):
@@ -179,7 +183,7 @@ image_transform = transforms.Compose([
 ])
 
 # Create dataset and dataloader
-dataset = MusicImageDataset(image_root, midi_root, image_transform, max_seq_len=100, max_midi_files=10)
+dataset = MusicImageDataset(image_root, midi_root, image_transform, max_seq_len=100, max_midi_files=100)
 dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
 
 # Initialize and train model
