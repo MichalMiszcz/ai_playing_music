@@ -274,7 +274,7 @@ def sequence_to_midi(sequence, output_midi_path):
 
 # Image transformation
 image_transform = transforms.Compose([
-    transforms.Resize((496, 701)),
+    transforms.Resize((992, 1402)),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
@@ -282,13 +282,13 @@ image_transform = transforms.Compose([
 # Main execution
 if __name__ == "__main__":
     # Initialize dataset and dataloader
-    max_seq_len = 100
-    dataset = MusicImageDataset(image_root, midi_root, image_transform, max_seq_len=max_seq_len, max_midi_files=10)
+    max_seq_len = 400
+    dataset = MusicImageDataset(image_root, midi_root, image_transform, max_seq_len=max_seq_len, max_midi_files=15)
     dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
 
     # Initialize and train model
     model = CNNRNNModel(input_channels=3, hidden_dim=512, output_dim=2, max_seq_len=max_seq_len)
-    train_model(model, dataloader, epochs=20, device=device, learning_rate=0.005)
+    train_model(model, dataloader, epochs=40, device=device, learning_rate=0.025)
 
     # Generate MIDI
     generate_midi_from_selected_image(model, dataset, selected_image_path, "output_selected_from_main.mid")
