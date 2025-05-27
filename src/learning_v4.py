@@ -90,7 +90,7 @@ class MusicImageDataset(Dataset):
 
     def __getitem__(self, idx):
         img_path = self.image_paths[idx]
-        # Extract composer and piece from the path
+
         rel_path = os.path.relpath(img_path, self.image_root)
         composer, piece, _ = rel_path.split(os.sep)
         midi_key = f"{composer}/{piece}"
@@ -99,10 +99,6 @@ class MusicImageDataset(Dataset):
         image = Image.open(img_path).convert('RGB')
         if self.image_transform:
             image = self.image_transform(image)
-
-        # print("Midi key: ", midi_key)
-        list_of_keys = self.midi_features.keys()
-        # print("Midi features: ", list_of_keys)
 
         # Get corresponding MIDI sequence
         midi_seq = self.midi_features.get(midi_key, [(0, 0)] * self.max_seq_len)
@@ -173,8 +169,6 @@ def extract_notes_from_midi(midi_path):
     # Format the output as a list of (note, duration) tuples
     notes = [(note, duration) for _, note, duration in all_notes]
 
-    # print(notes)
-
     return notes
 
 # CNN-RNN Model
@@ -227,6 +221,7 @@ def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.000
         for i, (images, midi_batch) in enumerate(dataloader):
             images = images.to(device)
             midi_batch = midi_batch.to(device)
+
             optimizer.zero_grad()
             output = model(images, midi_batch)
             # print(f"Sample output: {output[0, :5].cpu().detach().numpy()}")
@@ -283,12 +278,12 @@ image_transform = transforms.Compose([
 if __name__ == "__main__":
     # Initialize dataset and dataloader
     max_seq_len = 400
-    dataset = MusicImageDataset(image_root, midi_root, image_transform, max_seq_len=max_seq_len, max_midi_files=15)
+    dataset = MusicImageDataset(image_root, midi_root, image_transform, max_seq_len=max_seq_len, max_midi_files=25)
     dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
 
     # Initialize and train model
     model = CNNRNNModel(input_channels=3, hidden_dim=512, output_dim=2, max_seq_len=max_seq_len)
-    train_model(model, dataloader, epochs=40, device=device, learning_rate=0.025)
+    train_model(model, dataloader, epochs=5, device=device, learning_rate=0.025)
 
     # Generate MIDI
     generate_midi_from_selected_image(model, dataset, selected_image_path, "output_selected_from_main.mid")
