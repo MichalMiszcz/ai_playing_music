@@ -96,11 +96,11 @@ with torch.no_grad():
     print(predicted_sequence)
     # predicted_sequence = [(int(abs(x) * 1000000), int(abs(y) * 1000000)) for x, y in predicted_sequence]
     # predicted_sequence = [(int(abs(x) * 500), int(abs(y) * 8)) for x, y in predicted_sequence]
-    predicted_sequence = [(int(abs(x) * 127), int(abs(y) * 150)) for x, y in predicted_sequence]
+    predicted_sequence = [(int(abs(x) * 32), int(abs(y) * 16)) for x, y in predicted_sequence]
     # predicted_sequence = [(int(abs(x)), int(abs(y))) for x, y in predicted_sequence]
     # predicted_sequence = [(int(p * 127 + 0.5), int(d * 10)) for p, d in predicted_sequence]
     print(predicted_sequence)
     sequence_to_midi(predicted_sequence, "generated_output_from_main_2.mid")
-    print("MIDI file generated: generated_output.mid")
+    print("MIDI file generated: generated_output_from_main_2.mid")
 
 

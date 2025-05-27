@@ -10,9 +10,8 @@ import random
 
 image_root = "data/images"
 midi_root = "data/processed_midi"
-selected_image_path = "data/images/albeniz/alb_esp1/alb_esp1-1.png"  # Replace with your image path
+selected_image_path = "data/images/albeniz/alb_esp1/alb_esp1-1.png"
 
-# Set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
@@ -26,33 +25,27 @@ class MusicImageDataset(Dataset):
         self.image_transform = image_transform if image_transform else transforms.ToTensor()
         self.max_seq_len = max_seq_len
 
-        # Step 1: Collect all MIDI files
         midi_files = []
         for root, dirs, files in os.walk(midi_root):
-            folder = os.path.basename(os.path.dirname(root))  # e.g., "albeniz"
-            author = os.path.basename(root)  # e.g., "alb_esp1"
+            folder = os.path.basename(os.path.dirname(root))
+            author = os.path.basename(root)
             for file in files:
                 if file.endswith('.mid'):
                     midi_files.append((folder, author, os.path.join(root, file)))
-        # print(f"Found {len(midi_files)} MIDI files in {midi_root}")
 
-        # Step 2: Randomly select up to 100 MIDI files
         random.shuffle(midi_files)
-        self.selected_midi_files = midi_files[:max_midi_files]
+        sorted_midi_files = sorted(midi_files[:max_midi_files], key=lambda x: x[2])
+        self.selected_midi_files = sorted_midi_files
 
-        # Step 3: Collect all images corresponding to the selected MIDI files
         self.image_paths = []
         self.midi_features = {}
         records_to_remove = []
 
         for folder, author, midi_file in self.selected_midi_files:
-            # print(f"Processing MIDI: {folder}/{author} at {midi_file}")
-            # Load MIDI features
             midi_name = os.path.splitext(os.path.basename(midi_file))[0]
             midi_key = f"{author}/{midi_name}"
             try:
                 midi_seq = extract_notes_from_midi(midi_file)
-                # Pad or truncate MIDI sequence to max_seq_len
                 if len(midi_seq) > self.max_seq_len:
                     midi_seq = midi_seq[:self.max_seq_len]
                 else:
@@ -211,6 +204,11 @@ class CNNRNNModel(nn.Module):
 
 # Training function
 def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.0005):
+
+
+    print(dataloader.dataset.image_paths)
+    print(dataloader.dataset.selected_midi_files)
+
     model = model.to(device)
     criterion_mse = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
@@ -277,13 +275,13 @@ image_transform = transforms.Compose([
 # Main execution
 if __name__ == "__main__":
     # Initialize dataset and dataloader
-    max_seq_len = 400
-    dataset = MusicImageDataset(image_root, midi_root, image_transform, max_seq_len=max_seq_len, max_midi_files=25)
+    max_seq_len = 50
+    dataset = MusicImageDataset(image_root, midi_root, image_transform, max_seq_len=max_seq_len, max_midi_files=50)
     dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
 
     # Initialize and train model
     model = CNNRNNModel(input_channels=3, hidden_dim=512, output_dim=2, max_seq_len=max_seq_len)
-    train_model(model, dataloader, epochs=5, device=device, learning_rate=0.025)
+    train_model(model, dataloader, epochs=50, device=device, learning_rate=0.005)
 
     # Generate MIDI
     generate_midi_from_selected_image(model, dataset, selected_image_path, "output_selected_from_main.mid")
