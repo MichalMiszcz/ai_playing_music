@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from matplotlib import pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, models
 from PIL import Image
@@ -204,10 +205,7 @@ class CNNRNNModel(nn.Module):
 
 # Training function
 def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.0005):
-
-
-    print(dataloader.dataset.image_paths)
-    print(dataloader.dataset.selected_midi_files)
+    learning_data = []
 
     model = model.to(device)
     criterion_mse = nn.MSELoss()
@@ -222,8 +220,6 @@ def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.000
 
             optimizer.zero_grad()
             output = model(images, midi_batch)
-            # print(f"Sample output: {output[0, :5].cpu().detach().numpy()}")
-            # print(f"Sample target: {midi_batch[0, :5].cpu().numpy()}")
             loss = criterion_mse(output, midi_batch)
             loss.backward()
             optimizer.step()
@@ -232,9 +228,11 @@ def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.000
                 print(f"Epoch {epoch+1}, Batch {i+1}/{len(dataloader)}, Loss: {loss.item():.6f}")
         avg_loss = total_loss / len(dataloader)
         print(f"Epoch {epoch+1}/{epochs}, Average Loss: {avg_loss:.6f}")
+        learning_data.append((epoch, avg_loss))
 
     torch.save(model.state_dict(), 'model.pth')
     print("Model saved as 'model.pth'")
+    return learning_data
 
 # Generate MIDI
 def generate_midi_from_selected_image(model, dataset, image_path, output_midi_path, device=device):
@@ -272,16 +270,33 @@ image_transform = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
+
+def generate_chart(data):
+    epochs = [t[0] for t in data]
+    avg_losses = [t[1] for t in data]
+
+    # Plotting
+    plt.figure(figsize=(8, 5))
+    plt.plot(epochs, avg_losses, marker='o', linestyle='-', color='blue')
+    plt.xlabel('Epoch')
+    plt.ylabel('Average Loss')
+    plt.title('Training Loss over Epochs')
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
 # Main execution
 if __name__ == "__main__":
     # Initialize dataset and dataloader
-    max_seq_len = 50
-    dataset = MusicImageDataset(image_root, midi_root, image_transform, max_seq_len=max_seq_len, max_midi_files=50)
+    max_seq_len = 5
+    dataset = MusicImageDataset(image_root, midi_root, image_transform, max_seq_len=max_seq_len, max_midi_files=200) # więcej plików
     dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
 
     # Initialize and train model
     model = CNNRNNModel(input_channels=3, hidden_dim=512, output_dim=2, max_seq_len=max_seq_len)
-    train_model(model, dataloader, epochs=50, device=device, learning_rate=0.005)
+    learning_data = train_model(model, dataloader, epochs=10, device=device, learning_rate=0.0002) # więcej epok, mniejszy lr
+
+    generate_chart(learning_data)
 
     # Generate MIDI
     generate_midi_from_selected_image(model, dataset, selected_image_path, "output_selected_from_main.mid")

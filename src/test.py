@@ -84,7 +84,7 @@ image_transform = transforms.Compose([
 ])
 
 # Load and preprocess a single image
-image_path = "data/images/albeniz/alb_esp1/alb_esp1-1.png"  # Replace with your image path
+image_path = "data/images/mozart/mz_311_1/mz_311_1-1.png"  # Replace with your image path
 image = Image.open(image_path).convert('RGB')
 image = image_transform(image).unsqueeze(0)  # Add batch dimension: [1, 3, 496, 701]
 image = image.to(device)
@@ -96,11 +96,11 @@ with torch.no_grad():
     print(predicted_sequence)
     # predicted_sequence = [(int(abs(x) * 1000000), int(abs(y) * 1000000)) for x, y in predicted_sequence]
     # predicted_sequence = [(int(abs(x) * 500), int(abs(y) * 8)) for x, y in predicted_sequence]
-    predicted_sequence = [(int(abs(x) * 32), int(abs(y) * 16)) for x, y in predicted_sequence]
+    predicted_sequence = [(int(abs(x) * 512), int(abs(y) * 32)) for x, y in predicted_sequence]
     # predicted_sequence = [(int(abs(x)), int(abs(y))) for x, y in predicted_sequence]
     # predicted_sequence = [(int(p * 127 + 0.5), int(d * 10)) for p, d in predicted_sequence]
     print(predicted_sequence)
-    sequence_to_midi(predicted_sequence, "generated_output_from_main_2.mid")
+    sequence_to_midi(predicted_sequence, "generated_output_from_main_big.mid")
     print("MIDI file generated: generated_output_from_main_2.mid")
 
 
