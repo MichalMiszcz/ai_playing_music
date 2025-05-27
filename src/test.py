@@ -72,9 +72,9 @@ model = CNNRNNModel(input_channels=3, hidden_dim=512, output_dim=2)
 model.to(device)
 
 # Load the saved model
-model.load_state_dict(torch.load("model.pth", map_location=device, weights_only=True))
+model.load_state_dict(torch.load("model_mini.pth", map_location=device, weights_only=True))
 model.eval()
-print("Model loaded from model.pth")
+print("Model loaded from model_mini.pth")
 
 # Image transformation (must match training)
 image_transform = transforms.Compose([
@@ -96,11 +96,11 @@ with torch.no_grad():
     print(predicted_sequence)
     # predicted_sequence = [(int(abs(x) * 1000000), int(abs(y) * 1000000)) for x, y in predicted_sequence]
     # predicted_sequence = [(int(abs(x) * 500), int(abs(y) * 8)) for x, y in predicted_sequence]
-    predicted_sequence = [(int(abs(x) * 512), int(abs(y) * 32)) for x, y in predicted_sequence]
+    predicted_sequence = [(int(abs(x) * 512), int(abs(y) * 100)) for x, y in predicted_sequence]
     # predicted_sequence = [(int(abs(x)), int(abs(y))) for x, y in predicted_sequence]
     # predicted_sequence = [(int(p * 127 + 0.5), int(d * 10)) for p, d in predicted_sequence]
     print(predicted_sequence)
-    sequence_to_midi(predicted_sequence, "generated_output_from_main_big.mid")
+    sequence_to_midi(predicted_sequence, "generated_output_from_mini.mid")
     print("MIDI file generated: generated_output_from_main_2.mid")
 
 

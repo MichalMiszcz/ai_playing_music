@@ -230,8 +230,8 @@ def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.000
         print(f"Epoch {epoch+1}/{epochs}, Average Loss: {avg_loss:.6f}")
         learning_data.append((epoch, avg_loss))
 
-    torch.save(model.state_dict(), 'model.pth')
-    print("Model saved as 'model.pth'")
+    torch.save(model.state_dict(), 'model_mini.pth')
+    print("Model saved as 'model_mini.pth'")
     return learning_data
 
 # Generate MIDI
