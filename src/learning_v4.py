@@ -86,7 +86,6 @@ def generate_chart(data):
     epochs = [t[0] for t in data]
     avg_losses = [t[1] for t in data]
 
-    # Plotting
     plt.figure(figsize=(8, 5))
     plt.plot(epochs, avg_losses, marker='o', linestyle='-', color='blue')
     plt.xlabel('Epoch')
