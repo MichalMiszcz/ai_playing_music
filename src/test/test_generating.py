@@ -27,7 +27,7 @@ print(f"Using device: {device}")
 model = CNNRNNModel(input_channels=3, hidden_dim=512, output_dim=2)
 model.to(device)
 
-model.load_state_dict(torch.load("model_mini.pth", map_location=device, weights_only=True))
+model.load_state_dict(torch.load("../model_mini.pth", map_location=device, weights_only=True))
 model.eval()
 
 image_transform = transforms.Compose([
@@ -36,7 +36,7 @@ image_transform = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-image_path = "data/images/albeniz/alb_esp1/alb_esp1-1.png"
+image_path = "../data/images/albeniz/alb_esp1/alb_esp1-1.png"
 image = Image.open(image_path).convert('RGB')
 image = image_transform(image).unsqueeze(0)
 image = image.to(device)
@@ -51,6 +51,6 @@ with torch.no_grad():
     # predicted_sequence = [(int(abs(x)), int(abs(y))) for x, y in predicted_sequence]
     # predicted_sequence = [(int(p * 127 + 0.5), int(d * 10)) for p, d in predicted_sequence]
     print(predicted_sequence)
-    sequence_to_midi(predicted_sequence, "generated_alb.mid")
+    sequence_to_midi(predicted_sequence, "../generated_alb.mid")
 
 
