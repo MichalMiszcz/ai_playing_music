@@ -10,7 +10,7 @@ import mido
 from src.cnnrnn_model_2 import CNNRNNModel
 from src.music_image_dataset_2 import MusicImageDataset
 
-image_root = "my_images"
+image_root = "my_images/my_midi_images"
 midi_root = "my_data"
 selected_image_path = "my_data/my_midi_files/simple_piano_01.mid"
 
@@ -114,7 +114,7 @@ def generate_chart(data):
     plt.show()
 
 if __name__ == "__main__":
-    max_seq_len = 50
+    max_seq_len = 20
     left_hand_tracks = ['Piano left', 'Left']
     right_hand_tracks = ['Piano right', 'Right', 'Track 0']
     dataset = MusicImageDataset(image_root, midi_root, left_hand_tracks, right_hand_tracks, image_transform, max_seq_len=max_seq_len, max_midi_files=50)

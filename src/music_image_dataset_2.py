@@ -49,10 +49,12 @@ class MusicImageDataset(Dataset):
                 records_to_remove.append((folder, author, midi_file))
                 continue
 
-            file = os.path.splitext(os.path.basename(midi_file))[0]
-            image_dir = os.path.join(image_root, author, file)
+            # file = os.path.splitext(os.path.basename(midi_file))[0]
+            folder = os.path.splitext(os.path.basename(midi_file))[0]
+            file = os.path.splitext(os.path.basename(midi_file))[0] + "-1" # Added only for my files
+            image_dir = os.path.join(image_root, author, folder)
 
-            print(image_dir)
+            print(image_dir, file)
             if os.path.exists(image_dir):
                 image_files = [f for f in os.listdir(image_dir) if f.endswith(('.png', '.jpg'))]
                 for file in image_files:
