@@ -103,9 +103,11 @@ def midi2jpg(midi_folder_path, image_folder_path):
 
 
 if __name__ == "__main__":
-    midi_raw_folder_path = "data/midi"
-    processed_folder_path = "data/processed_midi"
-    image_folder_path = "data/images"
+    # midi_raw_folder_path = "data/midi"
+    # processed_folder_path = "data/processed_midi"
+    processed_folder_path = "my_data"
+    # image_folder_path = "data/images"
+    image_folder_path = "my_images/my_midi_images"
 
-    process_midi(midi_raw_folder_path, processed_folder_path, max_duration=16.0, fixed_bpm=60)
+    # process_midi(midi_raw_folder_path, processed_folder_path, max_duration=16.0, fixed_bpm=60)
     midi2jpg(processed_folder_path, image_folder_path)

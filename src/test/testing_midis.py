@@ -46,7 +46,7 @@ def preprocess_midi(midi_file, max_duration=10.0, fixed_bpm=120):
 
 
 if __name__ == "__main__":
-    midi_example = "data/processed_midi/albeniz/alb_se1.mid"
+    midi_example = "my_data/my_midi_files/simple_piano_02.mid"
 
     preprocess_midi(midi_example)
 
