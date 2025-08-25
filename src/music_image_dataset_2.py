@@ -63,7 +63,7 @@ class MusicImageDataset(Dataset):
         for record in records_to_remove:
             self.selected_midi_files.remove(record)
 
-        all_delta_times = [delta_time for seq in self.midi_features.values() for delta_time, _, _, _ in seq if delta_time > 0]
+        all_delta_times = [delta_time for seq in self.midi_features.values() for _, _, _, delta_time in seq if delta_time > 0]
         self.max_delta_time = max(all_delta_times) if all_delta_times else 1
 
         self.image_paths.sort()
@@ -146,7 +146,7 @@ def extract_notes_from_midi(midi_path, left_hand_tracks, right_hand_tracks):
     prev_time = 0
     for time, hand, note, velocity in all_events:
         delta_time = time - prev_time
-        sequence.append((delta_time, hand, note, velocity))
+        sequence.append((hand, note, velocity, delta_time))
         prev_time = time
 
     return sequence

@@ -43,9 +43,12 @@ def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.000
             loss.backward()
             optimizer.step()
             total_loss += loss.item()
+
+            print("loss:", loss.item())
             if (i + 1) % 10 == 0:
                 print(f"Epoch {epoch+1}, Batch {i+1}/{len(dataloader)}, Loss: {loss.item():.6f}")
         avg_loss = total_loss / len(dataloader)
+
         print(f"Epoch {epoch+1}/{epochs}, Average Loss: {avg_loss:.6f}")
         learning_data.append((epoch, avg_loss))
 
@@ -55,7 +58,7 @@ def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.000
 
 def generate_midi_from_selected_image(model, dataset, image_path, output_midi_path, device=device):
     model.eval()
-    image = Image.open(image_path).convert('RGB')
+    image = Image.open(image_path).convert('RGB') # zmienić na 'L'
     transform = image_transform
     image = transform(image).unsqueeze(0).to(device)
     with torch.no_grad():
@@ -78,7 +81,7 @@ def sequence_to_midi(sequence, output_midi_path):
 
     current_time = 0
     events = []
-    for delta_time, hand, note, velocity in sequence:
+    for hand, note, velocity, delta_time in sequence:
         current_time += delta_time
         events.append((current_time, hand, note, velocity))
 
@@ -114,14 +117,14 @@ def generate_chart(data):
     plt.show()
 
 if __name__ == "__main__":
-    max_seq_len = 20
+    max_seq_len = 25
     left_hand_tracks = ['Piano left', 'Left']
     right_hand_tracks = ['Piano right', 'Right', 'Track 0']
     dataset = MusicImageDataset(image_root, midi_root, left_hand_tracks, right_hand_tracks, image_transform, max_seq_len=max_seq_len, max_midi_files=50)
     dataloader = DataLoader(dataset, batch_size=10, shuffle=True)
 
     model = CNNRNNModel(input_channels=3, hidden_dim=512, output_dim=4, max_seq_len=max_seq_len)
-    learning_data = train_model(model, dataloader, epochs=25, device=device, learning_rate=0.00002)
+    learning_data = train_model(model, dataloader, epochs=15, device=device, learning_rate=0.002)
 
     generate_chart(learning_data)
 

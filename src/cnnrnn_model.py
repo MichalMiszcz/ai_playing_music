@@ -29,7 +29,7 @@ class CNNRNNModel(nn.Module):
             return output
         else:
             output_seq = []
-            input_note = torch.zeros(batch_size, 1, 2).to(x.device)
+            input_note = torch.zeros(batch_size, 1, 4).to(x.device)
             hidden = (h0, c0)
             for _ in range(self.max_seq_len):
                 output, hidden = self.rnn(input_note, hidden)
