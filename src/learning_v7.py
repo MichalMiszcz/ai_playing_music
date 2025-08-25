@@ -76,8 +76,6 @@ def sequence_to_midi(sequence, output_midi_path):
     mid = mido.MidiFile(ticks_per_beat=480)
     left_track = mido.MidiTrack()
     right_track = mido.MidiTrack()
-    mid.tracks.append(left_track)
-    mid.tracks.append(right_track)
 
     current_time = 0
     events = []
@@ -100,6 +98,9 @@ def sequence_to_midi(sequence, output_midi_path):
 
     add_events_to_track(left_track, left_events)
     add_events_to_track(right_track, right_events)
+
+    mid.tracks.append(left_track)
+    mid.tracks.append(right_track)
 
     mid.save(output_midi_path)
 
