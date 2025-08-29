@@ -7,8 +7,8 @@ from torchvision import transforms
 from PIL import Image
 import mido
 
-from src.cnnrnn_model_2 import CNNRNNModel
-from src.music_image_dataset_2 import MusicImageDataset
+from src.cnnrnn_model_3_bitmap import CNNRNNModel
+from src.music_image_dataset_3_bitmap import MusicImageDataset
 
 image_root = "my_images/my_midi_images"
 midi_root = "my_data"
@@ -20,7 +20,7 @@ print(f"Using device: {device}")
 image_transform = transforms.Compose([
     transforms.Resize((992, 1402)),
     transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    transforms.Normalize(mean=[0.5], std=[0.5])
 ])
 
 def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.0005):
@@ -58,7 +58,7 @@ def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.000
 
 def generate_midi_from_selected_image(model, dataset, image_path, output_midi_path, device=device):
     model.eval()
-    image = Image.open(image_path).convert('L')
+    image = Image.open(image_path).convert('1')
     transform = image_transform
     image = transform(image).unsqueeze(0).to(device)
     with torch.no_grad():
@@ -124,7 +124,7 @@ if __name__ == "__main__":
     dataset = MusicImageDataset(image_root, midi_root, left_hand_tracks, right_hand_tracks, image_transform, max_seq_len=max_seq_len, max_midi_files=50)
     dataloader = DataLoader(dataset, batch_size=10, shuffle=True)
 
-    model = CNNRNNModel(input_channels=3, hidden_dim=512, output_dim=4, max_seq_len=max_seq_len)
+    model = CNNRNNModel(input_channels=1, hidden_dim=512, output_dim=4, max_seq_len=max_seq_len)
     learning_data = train_model(model, dataloader, epochs=15, device=device, learning_rate=0.002)
 
     generate_chart(learning_data)

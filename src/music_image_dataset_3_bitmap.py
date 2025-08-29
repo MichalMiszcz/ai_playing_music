@@ -82,7 +82,7 @@ class MusicImageDataset(Dataset):
         composer, piece, _ = rel_path.split(os.sep)
         midi_key = f"{composer}/{piece}"
 
-        image = Image.open(img_path).convert('L')
+        image = Image.open(img_path).convert('1')
         if self.image_transform:
             image = self.image_transform(image)
 
