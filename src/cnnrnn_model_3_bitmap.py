@@ -7,7 +7,7 @@ class CNNRNNModel(nn.Module):
         super(CNNRNNModel, self).__init__()
         self.max_seq_len = max_seq_len
         self.cnn = models.resnet18(pretrained=True)
-        self.cnn.conv1 = nn.Conv2d(input_channels, 64, kernel_size=25, stride=1, padding=5, bias=True) #może bias na true
+        self.cnn.conv1 = nn.Conv2d(input_channels, 64, kernel_size=25, stride=1, padding=5, bias=False) #bias False, bo Conv ma BatchNorm
         self.cnn.fc = nn.Linear(512, hidden_dim)
         self.cnn.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.rnn = nn.LSTM(input_size=output_dim, hidden_size=hidden_dim, num_layers=rnn_layers, batch_first=True)

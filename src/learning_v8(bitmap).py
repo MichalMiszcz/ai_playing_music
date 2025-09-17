@@ -123,7 +123,7 @@ if __name__ == "__main__":
     left_hand_tracks = ['Piano left', 'Left']
     right_hand_tracks = ['Piano right', 'Right', 'Track 0']
     dataset = MusicImageDataset(image_root, midi_root, left_hand_tracks, right_hand_tracks, image_transform, max_seq_len=max_seq_len, max_midi_files=50)
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=25, shuffle=True)
 
     model = CNNRNNModel(input_channels=1, hidden_dim=2048, output_dim=4, max_seq_len=max_seq_len)
     learning_data = train_model(model, dataloader, epochs=15, device=device, learning_rate=0.00005)
