@@ -9,6 +9,7 @@ import mido
 
 from src.cnnrnn_model_3_bitmap import CNNRNNModel
 from src.music_image_dataset_3_bitmap import MusicImageDataset
+from src.global_variables import SIZE_X, SIZE_Y
 
 image_root = "my_images/my_midi_images"
 midi_root = "my_data"
@@ -18,7 +19,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 image_transform = transforms.Compose([
-    transforms.Resize((992, 1402)),
+    transforms.Resize((SIZE_X, SIZE_Y)),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.5], std=[0.5])
 ])
@@ -118,14 +119,14 @@ def generate_chart(data):
     plt.show()
 
 if __name__ == "__main__":
-    max_seq_len = 25
+    max_seq_len = 50
     left_hand_tracks = ['Piano left', 'Left']
     right_hand_tracks = ['Piano right', 'Right', 'Track 0']
     dataset = MusicImageDataset(image_root, midi_root, left_hand_tracks, right_hand_tracks, image_transform, max_seq_len=max_seq_len, max_midi_files=50)
-    dataloader = DataLoader(dataset, batch_size=10, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
 
-    model = CNNRNNModel(input_channels=1, hidden_dim=512, output_dim=4, max_seq_len=max_seq_len)
-    learning_data = train_model(model, dataloader, epochs=15, device=device, learning_rate=0.002)
+    model = CNNRNNModel(input_channels=1, hidden_dim=2048, output_dim=4, max_seq_len=max_seq_len)
+    learning_data = train_model(model, dataloader, epochs=15, device=device, learning_rate=0.00005)
 
     generate_chart(learning_data)
 
