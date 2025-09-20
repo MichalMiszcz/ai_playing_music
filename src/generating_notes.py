@@ -2,6 +2,7 @@ import subprocess
 import os
 import sys
 import mido
+from PIL import Image
 
 from os import mkdir
 
@@ -96,18 +97,24 @@ def midi2jpg(midi_folder_path, image_folder_path):
                 print(single_image_folder)
 
                 output_sheet_file = single_image_folder + "/" + file_base + ".png"
+                output_sheet_file_to_change = single_image_folder + "/" + file_base + "-1" + ".png"
+
                 print(f"Processing MIDI: {input_midi_file}")
                 print(f"Generating sheet music: {output_sheet_file}")
 
                 convert_midi_to_sheet(input_midi_file, output_sheet_file, MUSESCORE_EXECUTABLE)
 
+                img = Image.open(output_sheet_file_to_change)
+                cropped = img.crop((0, 0, img.width - 1, 900))
+                cropped.save(output_sheet_file_to_change)
+
 
 if __name__ == "__main__":
-    # midi_raw_folder_path = "data/midi"
+    midi_raw_folder_path = "my_data_preprocessed"
     # processed_folder_path = "data/processed_midi"
     processed_folder_path = "my_data"
     # image_folder_path = "data/images"
     image_folder_path = "my_images/my_midi_images"
 
-    # process_midi(midi_raw_folder_path, processed_folder_path, max_duration=16.0, fixed_bpm=60)
+    process_midi(midi_raw_folder_path, processed_folder_path, max_duration=8.0, fixed_bpm=120)
     midi2jpg(processed_folder_path, image_folder_path)
