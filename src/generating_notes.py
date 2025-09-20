@@ -23,6 +23,7 @@ def preprocess_midi(midi_file, output_midi_file, max_duration=10.0, fixed_bpm=12
         new_track = mido.MidiTrack()
         new_mid.tracks.append(new_track)
 
+        new_track.append(mido.MetaMessage('track_name', name='Piano right'))
         new_track.append(mido.MetaMessage('set_tempo', tempo=tempo, time=0))
 
         current_time = 0.0
