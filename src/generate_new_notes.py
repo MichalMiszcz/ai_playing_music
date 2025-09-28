@@ -4,12 +4,12 @@ import os
 
 WHITE_KEYS = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5']
 
-NUM_SONGS = 3
+NUM_SONGS = 512
 MEASURES_PER_SONG = 4
 NOTES_PER_MEASURE = 4
 TEMPO = 120
 
-output_folder_path = "generated_songs"
+output_folder_path = "generated_songs_raw"
 
 
 def generate_random_song(song_number):
@@ -37,7 +37,7 @@ def generate_random_song(song_number):
 
     song.append(part)
 
-    output_dir = f'{output_folder_path}'
+    output_dir = f'{output_folder_path}/my_midi_files'
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, f'song_{song_number}.mid')
     song.write('midi', output_path)

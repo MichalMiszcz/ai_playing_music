@@ -8,7 +8,7 @@ from os import mkdir
 
 MUSESCORE_EXECUTABLE = "musescore4"
 
-def preprocess_midi(midi_file, output_midi_file, max_duration=10.0, fixed_bpm=120):
+def preprocess_midi(midi_file, output_midi_file, max_duration=10.0, fixed_bpm=120, add_track_name=True, previous_track_name=''):
     try:
         mid = mido.MidiFile(midi_file)
     except Exception as e:
@@ -23,7 +23,6 @@ def preprocess_midi(midi_file, output_midi_file, max_duration=10.0, fixed_bpm=12
         new_track = mido.MidiTrack()
         new_mid.tracks.append(new_track)
 
-        new_track.append(mido.MetaMessage('track_name', name='Piano right'))
         new_track.append(mido.MetaMessage('set_tempo', tempo=tempo, time=0))
 
         current_time = 0.0
@@ -35,8 +34,17 @@ def preprocess_midi(midi_file, output_midi_file, max_duration=10.0, fixed_bpm=12
             if current_time > max_duration:
                 break
 
+            if msg.type == 'pitchwheel':
+                continue
+
             if msg.is_meta and msg.type == 'set_tempo':
                 continue
+
+            if add_track_name:
+                if msg.is_meta and msg.type == 'track_name':
+                    if add_track_name and track.name == previous_track_name:
+                        new_track.append(mido.MetaMessage('track_name', name='Piano right'))
+                    continue
 
             new_track.append(msg)
 
@@ -61,7 +69,7 @@ def convert_midi_to_sheet(midi_file, output_file, musescore_path="MuseScore4.exe
         print(e)
         sys.exit(1)
 
-def process_midi(midi_folder_path, processed_folder_path, max_duration=10.0, fixed_bpm=60):
+def process_midi(midi_folder_path, processed_folder_path, max_duration=10.0, fixed_bpm=60, add_track_name=True):
     for root, dirs, files in os.walk(midi_folder_path):
         for folder in dirs:
             active_midi_folder = midi_folder_path + "/" + folder
@@ -75,7 +83,7 @@ def process_midi(midi_folder_path, processed_folder_path, max_duration=10.0, fix
                 output_midi_file = active_processed_midi_folder + "/" + file
                 print(f"Processing MIDI: {output_midi_file}")
 
-                preprocess_midi(input_midi_file, output_midi_file, max_duration=max_duration, fixed_bpm=fixed_bpm)
+                preprocess_midi(input_midi_file, output_midi_file, max_duration=max_duration, fixed_bpm=fixed_bpm, add_track_name=add_track_name)
 
 def midi2jpg(midi_folder_path, image_folder_path):
     for root, dirs, files in os.walk(midi_folder_path):
@@ -111,11 +119,11 @@ def midi2jpg(midi_folder_path, image_folder_path):
 
 
 if __name__ == "__main__":
-    midi_raw_folder_path = "my_data_preprocessed"
+    midi_raw_folder_path = "generated_songs_raw"
     # processed_folder_path = "data/processed_midi"
-    processed_folder_path = "my_data"
+    processed_folder_path = "generated_songs_processed"
     # image_folder_path = "data/images"
     image_folder_path = "my_images/my_midi_images"
 
-    process_midi(midi_raw_folder_path, processed_folder_path, max_duration=8.0, fixed_bpm=120)
+    # process_midi(midi_raw_folder_path, processed_folder_path, max_duration=8.0, fixed_bpm=120, add_track_name=True)
     midi2jpg(processed_folder_path, image_folder_path)

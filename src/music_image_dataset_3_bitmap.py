@@ -43,7 +43,10 @@ class MusicImageDataset(Dataset):
                     midi_seq = midi_seq[:self.max_seq_len]
                 else:
                     midi_seq += [(0, 0, 0, 0)] * (self.max_seq_len - len(midi_seq))
+
+                print(midi_seq)
                 self.midi_features[midi_key] = midi_seq
+                print(self.midi_features[midi_key])
             except Exception as e:
                 print(f"Error processing MIDI {midi_file}: {e}")
                 records_to_remove.append((folder, author, midi_file))
@@ -104,6 +107,8 @@ def extract_notes_from_midi(midi_path, left_hand_tracks, right_hand_tracks):
     right_hand_track = None
 
     for track in mid.tracks:
+        print(track)
+
         if track.name in left_hand_tracks and left_hand_track is None:
             left_hand_track = track
         elif track.name in right_hand_tracks and right_hand_track is None:

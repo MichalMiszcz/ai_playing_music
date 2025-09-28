@@ -12,8 +12,8 @@ from src.music_image_dataset_3_bitmap import MusicImageDataset
 from src.global_variables import SIZE_X, SIZE_Y
 
 image_root = "my_images/my_midi_images"
-midi_root = "my_data"
-selected_image_path = "my_data/my_midi_files/simple_piano_01.mid"
+midi_root = "generated_songs_processed"
+selected_image_path = "my_simple_songs/my_midi_files/simple_piano_01.mid"
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -24,12 +24,12 @@ image_transform = transforms.Compose([
     transforms.Normalize(mean=[0.5], std=[0.5])
 ])
 
-def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.0005):
+def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.0005, weight_decay=0.00001):
     learning_data = []
 
     model = model.to(device)
     criterion_mse = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
     for epoch in range(epochs):
         model.train()
@@ -119,14 +119,15 @@ def generate_chart(data):
     plt.show()
 
 if __name__ == "__main__":
-    max_seq_len = 50
+    max_seq_len = 16
     left_hand_tracks = ['Piano left', 'Left']
     right_hand_tracks = ['Piano right', 'Right', 'Track 0']
-    dataset = MusicImageDataset(image_root, midi_root, left_hand_tracks, right_hand_tracks, image_transform, max_seq_len=max_seq_len, max_midi_files=50)
-    dataloader = DataLoader(dataset, batch_size=25, shuffle=True)
+    dataset = MusicImageDataset(image_root, midi_root, left_hand_tracks, right_hand_tracks, image_transform,
+                                max_seq_len=max_seq_len, max_midi_files=75)
+    dataloader = DataLoader(dataset, batch_size=8, shuffle=True)
 
-    model = CNNRNNModel(input_channels=1, hidden_dim=2048, output_dim=4, max_seq_len=max_seq_len)
-    learning_data = train_model(model, dataloader, epochs=15, device=device, learning_rate=0.00005)
+    model = CNNRNNModel(input_channels=1, hidden_dim=128, output_dim=4, max_seq_len=max_seq_len)
+    learning_data = train_model(model, dataloader, epochs=50, device=device, learning_rate=0.0001, weight_decay=0.0001)
 
     generate_chart(learning_data)
 

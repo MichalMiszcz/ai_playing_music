@@ -42,14 +42,14 @@ def sequence_to_midi(sequence, output_midi_path):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-model = CNNRNNModel(input_channels=1, hidden_dim=2048, output_dim=4)
+model = CNNRNNModel(input_channels=1, hidden_dim=512, output_dim=4)
 model.to(device)
 
-model.load_state_dict(torch.load("../model_bitmap75.pth", map_location=device, weights_only=True))
+model.load_state_dict(torch.load("../data/models/model_bitmap_changes.pth", map_location=device, weights_only=True))
 model.eval()
 
 image_transform = transforms.Compose([
-    transforms.Resize((992, 1402)),
+    transforms.Resize((1488, 450)),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.5], std=[0.5])
 ])
@@ -65,11 +65,11 @@ with torch.no_grad():
     print(predicted_sequence)
     # predicted_sequence = [(int(abs(x) * 1000000), int(abs(y) * 1000000)) for x, y in predicted_sequence]
     # predicted_sequence = [(int(abs(x) * 500), int(abs(y) * 8)) for x, y in predicted_sequence]
-    predicted_sequence = [(1 if h > 0.5 else 0, int(n * 127 + 0.5), int(v * 127 + 0.5), int(dt * 1024 + 0.5))
+    predicted_sequence = [(1 if h > 0.5 else 0, int(n * 127 + 0.5), int(v * 127 + 0.5), int(dt * 512 + 0.5))
             for h, n, v, dt in predicted_sequence]
     # predicted_sequence = [(int(abs(x)), int(abs(y))) for x, y in predicted_sequence]
     # predicted_sequence = [(int(p * 127 + 0.5), int(d * 10)) for p, d in predicted_sequence]
     print(predicted_sequence)
-    sequence_to_midi(predicted_sequence, "../generated_simple_c.mid")
+    sequence_to_midi(predicted_sequence, "../generated_simple_1.mid")
 
 
