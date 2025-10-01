@@ -50,7 +50,7 @@ def convert_midi_to_sheet(midi_file, output_file, musescore_path="MuseScore4.exe
 # MIDI processed
 def process_midi():
     midi_folder_path = "../data/midi"
-    processed_folder_path = "../data/processed_midi"
+    processed_folder_path = "../data/classic_music/processed_midi"
 
     for root, dirs, files in os.walk(midi_folder_path):
         for folder in dirs:
@@ -72,7 +72,7 @@ def process_midi():
 # MIDI to MP3 can be converted the same way
 # MIDI to PDF
 def midi2pdf():
-    midi_folder_path = "../data/processed_midi"
+    midi_folder_path = "../data/classic_music/processed_midi"
     pdf_folder_path = "data/png"
 
     print("Converting MIDI to PDF...")
@@ -98,7 +98,7 @@ def midi2pdf():
 
 # JPG from MIDI
 def midi2jpg():
-    midi_folder_path = "../data/processed_midi"
+    midi_folder_path = "../data/classic_music/processed_midi"
     pdf_folder_path = "../data/images"
 
     for root, dirs, files in os.walk(midi_folder_path):

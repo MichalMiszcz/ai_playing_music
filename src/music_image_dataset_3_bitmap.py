@@ -107,8 +107,6 @@ def extract_notes_from_midi(midi_path, left_hand_tracks, right_hand_tracks):
     right_hand_track = None
 
     for track in mid.tracks:
-        print(track)
-
         if track.name in left_hand_tracks and left_hand_track is None:
             left_hand_track = track
         elif track.name in right_hand_tracks and right_hand_track is None:

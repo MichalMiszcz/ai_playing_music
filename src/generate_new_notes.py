@@ -4,7 +4,7 @@ import os
 
 WHITE_KEYS = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5']
 
-NUM_SONGS = 512
+NUM_SONGS = 2048
 MEASURES_PER_SONG = 4
 NOTES_PER_MEASURE = 4
 TEMPO = 120

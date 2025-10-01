@@ -60,7 +60,7 @@ def convert_midi_to_sheet(midi_file, output_file, musescore_path="MuseScore4.exe
         sys.exit(1)
 
     try:
-        command = [musescore_path, midi_file, "-o", output_file]
+        command = [musescore_path, "-r 72", midi_file, "-o", output_file]
         print("Converting MIDI to sheet music using MuseScore...")
         subprocess.run(command, check=True)
         print(f"Success! Sheet music generated: {output_file}")
@@ -114,7 +114,8 @@ def midi2jpg(midi_folder_path, image_folder_path):
                 convert_midi_to_sheet(input_midi_file, output_sheet_file, MUSESCORE_EXECUTABLE)
 
                 img = Image.open(output_sheet_file_to_change)
-                cropped = img.crop((0, 0, img.width - 1, 900))
+                cropped = img.crop((0, 0, img.width - 1, 172))
+                # cropped = img.crop((0, 0, img.width, img.height))
                 cropped.save(output_sheet_file_to_change)
 
 
@@ -125,5 +126,5 @@ if __name__ == "__main__":
     # image_folder_path = "data/images"
     image_folder_path = "my_images/my_midi_images"
 
-    # process_midi(midi_raw_folder_path, processed_folder_path, max_duration=8.0, fixed_bpm=120, add_track_name=True)
+    process_midi(midi_raw_folder_path, processed_folder_path, max_duration=8.0, fixed_bpm=120, add_track_name=True)
     midi2jpg(processed_folder_path, image_folder_path)

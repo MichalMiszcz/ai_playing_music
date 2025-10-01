@@ -42,10 +42,11 @@ def sequence_to_midi(sequence, output_midi_path):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-model = CNNRNNModel(input_channels=1, hidden_dim=512, output_dim=4)
+model = CNNRNNModel(input_channels=1, hidden_dim=128, output_dim=4)
 model.to(device)
 
-model.load_state_dict(torch.load("../data/models/model_bitmap_changes.pth", map_location=device, weights_only=True))
+# model.load_state_dict(torch.load("../data/models/model_bitmap_512notes200epochs.pth", map_location=device, weights_only=True))
+model.load_state_dict(torch.load("../model_mini.pth", map_location=device, weights_only=True))
 model.eval()
 
 image_transform = transforms.Compose([
@@ -54,7 +55,8 @@ image_transform = transforms.Compose([
     transforms.Normalize(mean=[0.5], std=[0.5])
 ])
 
-image_path = "../my_images/my_midi_images/my_midi_files/c/c-1.png"
+image_path = "../my_images/my_midi_images/my_midi_files/song_1/song_1-1.png"
+# image_path = "../my_images_my_simple_songs/my_midi_images/my_midi_files/c/c-1.png"
 image = Image.open(image_path).convert('1')
 image = image_transform(image).unsqueeze(0)
 image = image.to(device)
