@@ -127,4 +127,4 @@ if __name__ == "__main__":
     image_folder_path = "my_images/my_midi_images"
 
     process_midi(midi_raw_folder_path, processed_folder_path, max_duration=8.0, fixed_bpm=120, add_track_name=True)
-    midi2jpg(processed_folder_path, image_folder_path)
+    # midi2jpg(processed_folder_path, image_folder_path)
