@@ -29,7 +29,7 @@ def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.000
 
     model = model.to(device)
     criterion_mse = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
     for epoch in range(epochs):
         model.train()
@@ -42,6 +42,9 @@ def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.000
             output = model(images, midi_batch)
             loss = criterion_mse(output, midi_batch)
             loss.backward()
+
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+
             optimizer.step()
             total_loss += loss.item()
 
@@ -126,8 +129,8 @@ if __name__ == "__main__":
                                 max_seq_len=max_seq_len, max_midi_files=512)
     dataloader = DataLoader(dataset, batch_size=8, shuffle=True)
 
-    model = CNNRNNModel(input_channels=1, hidden_dim=128, output_dim=4, max_seq_len=max_seq_len, rnn_layers=1)
-    learning_data = train_model(model, dataloader, epochs=750, device=device, learning_rate=0.0002, weight_decay=0.0001)
+    model = CNNRNNModel(input_channels=1, hidden_dim=256, output_dim=3, max_seq_len=max_seq_len, rnn_layers=2)
+    learning_data = train_model(model, dataloader, epochs=150, device=device, learning_rate=0.0005, weight_decay=0.0002)
 
     generate_chart(learning_data)
 

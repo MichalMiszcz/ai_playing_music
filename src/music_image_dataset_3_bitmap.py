@@ -42,11 +42,10 @@ class MusicImageDataset(Dataset):
                 if len(midi_seq) > self.max_seq_len:
                     midi_seq = midi_seq[:self.max_seq_len]
                 else:
-                    midi_seq += [(0, 0, 0, 0)] * (self.max_seq_len - len(midi_seq))
+                    # midi_seq += [(0, 0, 0, 0)] * (self.max_seq_len - len(midi_seq))
+                    midi_seq += [(0, 0, 0)] * (self.max_seq_len - len(midi_seq))
 
-                print(midi_seq)
                 self.midi_features[midi_key] = midi_seq
-                print(self.midi_features[midi_key])
             except Exception as e:
                 print(f"Error processing MIDI {midi_file}: {e}")
                 records_to_remove.append((folder, author, midi_file))
@@ -66,7 +65,8 @@ class MusicImageDataset(Dataset):
         for record in records_to_remove:
             self.selected_midi_files.remove(record)
 
-        all_delta_times = [delta_time for seq in self.midi_features.values() for _, _, _, delta_time in seq if delta_time > 0]
+        # all_delta_times = [delta_time for seq in self.midi_features.values() for _, _, _, delta_time in seq if delta_time > 0]
+        all_delta_times = [delta_time for seq in self.midi_features.values() for _, _, delta_time in seq if delta_time > 0]
         self.max_delta_time = max(all_delta_times) if all_delta_times else 1
 
         self.image_paths.sort()
@@ -89,9 +89,11 @@ class MusicImageDataset(Dataset):
         if self.image_transform:
             image = self.image_transform(image)
 
-        midi_seq = self.midi_features.get(midi_key, [(0, 0, 0, 0)] * self.max_seq_len)
+        # midi_seq = self.midi_features.get(midi_key, [(0, 0, 0, 0)] * self.max_seq_len)
+        midi_seq = self.midi_features.get(midi_key, [(0, 0, 0)] * self.max_seq_len)
 
-        normalized_seq = [(hand, note / 127.0, velocity / 127.0, delta_time / self.max_delta_time) for hand, note, velocity, delta_time in midi_seq]
+        # normalized_seq = [(hand, note / 127.0, velocity / 127.0, delta_time / self.max_delta_time) for hand, note, velocity, delta_time in midi_seq]
+        normalized_seq = [(note / 127.0, velocity / 127.0, delta_time / self.max_delta_time) for note, velocity, delta_time in midi_seq]
         midi_tensor = torch.tensor(normalized_seq, dtype=torch.float32)
 
         return image, midi_tensor
@@ -123,33 +125,42 @@ def extract_notes_from_midi(midi_path, left_hand_tracks, right_hand_tracks):
             current_time += msg.time
             if msg.type == 'note_on':
                 if msg.velocity > 0:
-                    events.append((current_time, hand, msg.note, msg.velocity))
+                    # events.append((current_time, hand, msg.note, msg.velocity))
+                    events.append((current_time, msg.note, msg.velocity))
                 else:
-                    events.append((current_time, hand, msg.note, 0))
+                    # events.append((current_time, hand, msg.note, 0))
+                    events.append((current_time, msg.note, 0))
             elif msg.type == 'note_off':
-                events.append((current_time, hand, msg.note, 0))
+                # events.append((current_time, hand, msg.note, 0))
+                events.append((current_time, msg.note, 0))
         return events
 
     all_events = []
 
-    if left_hand_track is not None:
-        left_events = extract_events_from_track(left_hand_track, 0)  # 0 for left
-        all_events += left_events
+    # if left_hand_track is not None:
+    #     left_events = extract_events_from_track(left_hand_track, 0)  # 0 for left
+    #     all_events += left_events
 
     if right_hand_track is not None:
         right_events = extract_events_from_track(right_hand_track, 1)  # 1 for right
         all_events += right_events
 
-    all_events.sort(key=lambda x: (x[0], x[1], x[2]))  # sort by time, then hand, then note
+    # all_events.sort(key=lambda x: (x[0], x[1], x[2]))  # sort by time, then hand, then note
+    all_events.sort(key=lambda x: (x[0], x[2]))  # sort by time, then velocity
 
     if not all_events:
         return []
 
     sequence = []
     prev_time = 0
-    for time, hand, note, velocity in all_events:
+    # for time, hand, note, velocity in all_events:
+    #     delta_time = time - prev_time
+    #     sequence.append((hand, note, velocity, delta_time))
+    #     prev_time = time
+
+    for time, note, velocity in all_events:
         delta_time = time - prev_time
-        sequence.append((hand, note, velocity, delta_time))
+        sequence.append((note, velocity, delta_time))
         prev_time = time
 
     return sequence

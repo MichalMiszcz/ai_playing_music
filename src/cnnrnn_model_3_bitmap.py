@@ -3,7 +3,7 @@ import torch.nn as nn
 from torchvision import models
 
 class CNNRNNModel(nn.Module):
-    def __init__(self, input_channels=1, hidden_dim=1024, output_dim=4, rnn_layers=1, max_seq_len=100):
+    def __init__(self, input_channels=1, hidden_dim=1024, output_dim=3, rnn_layers=2, max_seq_len=100):
         super(CNNRNNModel, self).__init__()
         self.max_seq_len = max_seq_len
         self.cnn = models.resnet18(weights=None)
@@ -15,6 +15,8 @@ class CNNRNNModel(nn.Module):
         self.proj_h = nn.Linear(hidden_dim, hidden_dim * rnn_layers)
         self.proj_c = nn.Linear(hidden_dim, hidden_dim * rnn_layers)
 
+        self.output_dim = output_dim
+
     def forward(self, x, target=None):
         batch_size = x.size(0)
         features = self.cnn(x).view(batch_size, -1)
@@ -22,14 +24,14 @@ class CNNRNNModel(nn.Module):
         c0 = self.proj_c(features).view(batch_size, self.rnn.num_layers, -1).transpose(0, 1).contiguous()
 
         if target is not None:
-            input_seq = torch.cat([torch.zeros(batch_size, 1, 4).to(x.device), target[:, :-1, :]], dim=1)
+            input_seq = torch.cat([torch.zeros(batch_size, 1, self.output_dim).to(x.device), target[:, :-1, :]], dim=1)
             output, _ = self.rnn(input_seq, (h0, c0))
             output = self.linear(output)
             output = torch.sigmoid(output)
             return output
         else:
             output_seq = []
-            input_note = torch.zeros(batch_size, 1, 4).to(x.device)
+            input_note = torch.zeros(batch_size, 1, self.output_dim).to(x.device)
             hidden = (h0, c0)
             for _ in range(self.max_seq_len):
                 output, hidden = self.rnn(input_note, hidden)
