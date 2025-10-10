@@ -7,8 +7,8 @@ from torchvision import transforms
 from PIL import Image
 import mido
 
-from src.cnnrnn_model_3_bitmap import CNNRNNModel
-from src.music_image_dataset_3_bitmap import MusicImageDataset
+from src.cnnrnn_model_3_greyscale import CNNRNNModel
+from src.music_image_dataset_3_greyscale import MusicImageDataset
 from src.global_variables import SIZE_X, SIZE_Y
 
 image_root = "my_images/my_midi_images"
@@ -24,12 +24,15 @@ image_transform = transforms.Compose([
     transforms.Normalize(mean=[0.5], std=[0.5])
 ])
 
-def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.0005, weight_decay=0.00001):
+def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.0005, weight_decay=0.00001, max_norm=1.0):
     learning_data = []
 
     model = model.to(device)
-    criterion_mse = nn.MSELoss()
+    # criterion_mse = nn.MSELoss()
+    criterion = torch.nn.HuberLoss(delta=1.0)
+
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3)
 
     for epoch in range(epochs):
         model.train()
@@ -40,39 +43,47 @@ def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.000
 
             optimizer.zero_grad()
             output = model(images, midi_batch)
-            loss = criterion_mse(output, midi_batch)
+            # loss = criterion_mse(output, midi_batch)
+            loss = criterion(output, midi_batch)
             loss.backward()
 
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=max_norm)
 
             optimizer.step()
             total_loss += loss.item()
 
-            print("loss:", loss.item())
-            if (i + 1) % 10 == 0:
+            # print("loss:", loss.item())
+            if (i + 1) % 128 == 0:
                 print(f"Epoch {epoch+1}, Batch {i+1}/{len(dataloader)}, Loss: {loss.item():.6f}")
         avg_loss = total_loss / len(dataloader)
 
         print(f"Epoch {epoch+1}/{epochs}, Average Loss: {avg_loss:.6f}")
         learning_data.append((epoch, avg_loss))
 
+    # torch.save(model.state_dict(), '/content/drive/MyDrive/modele_ai/model_bitmap.pth')
     torch.save(model.state_dict(), 'model_mini.pth')
     print("Model saved as 'model_mini.pth'")
     return learning_data
 
 def generate_midi_from_selected_image(model, dataset, image_path, output_midi_path, device=device):
     model.eval()
-    image = Image.open(image_path).convert('1')
+    image = Image.open(image_path).convert('L')
     transform = image_transform
     image = transform(image).unsqueeze(0).to(device)
     with torch.no_grad():
         output = model(image)
         predicted_sequence = output[0].cpu().detach().numpy().tolist()
         print(f"Raw predicted sequence: {predicted_sequence[:10]}")
+        # predicted_sequence = [
+        #     (1 if h > 0.5 else 0, int(n * 127 + 0.5), int(v * 127 + 0.5), int(dt * dataset.max_delta_time + 0.5))
+        #     for h, n, v, dt in predicted_sequence
+        # ]
+
         predicted_sequence = [
-            (1 if h > 0.5 else 0, int(n * 127 + 0.5), int(v * 127 + 0.5), int(dt * dataset.max_delta_time + 0.5))
-            for h, n, v, dt in predicted_sequence
+            (int(n * 127 + 0.5), int(v * 127 + 0.5), int(dt * dataset.max_delta_time + 0.5))
+            for n, v, dt in predicted_sequence
         ]
+
         print(f"Scaled predicted sequence: {predicted_sequence[:10]}")
         sequence_to_midi(predicted_sequence, output_midi_path)
 
@@ -122,15 +133,15 @@ def generate_chart(data):
     plt.show()
 
 if __name__ == "__main__":
-    max_seq_len = 16
+    max_seq_len = 32
     left_hand_tracks = ['Piano left', 'Left']
     right_hand_tracks = ['Piano right', 'Right', 'Track 0']
     dataset = MusicImageDataset(image_root, midi_root, left_hand_tracks, right_hand_tracks, image_transform,
-                                max_seq_len=max_seq_len, max_midi_files=512)
-    dataloader = DataLoader(dataset, batch_size=8, shuffle=True)
+                                max_seq_len=max_seq_len, max_midi_files=2048)
+    dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
 
     model = CNNRNNModel(input_channels=1, hidden_dim=256, output_dim=3, max_seq_len=max_seq_len, rnn_layers=2)
-    learning_data = train_model(model, dataloader, epochs=150, device=device, learning_rate=0.0005, weight_decay=0.0002)
+    learning_data = train_model(model, dataloader, epochs=150, device=device, learning_rate=0.0001, weight_decay=0.00001, max_norm=0.5)
 
     generate_chart(learning_data)
 

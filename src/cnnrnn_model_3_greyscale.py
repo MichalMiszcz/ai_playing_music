@@ -3,11 +3,11 @@ import torch.nn as nn
 from torchvision import models
 
 class CNNRNNModel(nn.Module):
-    def __init__(self, input_channels=1, hidden_dim=1024, output_dim=3, rnn_layers=2, max_seq_len=100):
+    def __init__(self, input_channels=1, hidden_dim=1024, output_dim=3, rnn_layers=3, max_seq_len=100):
         super(CNNRNNModel, self).__init__()
         self.max_seq_len = max_seq_len
         self.cnn = models.resnet18(weights=None)
-        self.cnn.conv1 = nn.Conv2d(input_channels, 64, kernel_size=7, stride=2, padding=0, bias=False) #bias False, bo Conv ma BatchNorm
+        self.cnn.conv1 = nn.Conv2d(input_channels, 64, kernel_size=7, stride=2, padding=3, bias=False) #bias False, bo Conv ma BatchNorm
         self.cnn.fc = nn.Linear(512, hidden_dim)
         self.cnn.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.rnn = nn.LSTM(input_size=output_dim, hidden_size=hidden_dim, num_layers=rnn_layers, dropout=0.33, batch_first=True)

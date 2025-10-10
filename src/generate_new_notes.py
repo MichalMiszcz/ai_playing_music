@@ -4,12 +4,12 @@ import os
 
 WHITE_KEYS = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5']
 
-NUM_SONGS = 2048
+NUM_SONGS = 128
 MEASURES_PER_SONG = 4
 NOTES_PER_MEASURE = 4
 TEMPO = 120
 
-output_folder_path = "generated_songs_raw"
+output_folder_path = "generated_songs_raw_test"
 
 
 def generate_random_song(song_number):

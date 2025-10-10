@@ -51,12 +51,14 @@ class MusicImageDataset(Dataset):
                 records_to_remove.append((folder, author, midi_file))
                 continue
 
+            print(midi_seq)
+
             # file = os.path.splitext(os.path.basename(midi_file))[0]
             folder = os.path.splitext(os.path.basename(midi_file))[0]
             file = os.path.splitext(os.path.basename(midi_file))[0] + "-1" # Added only for my files
             image_dir = os.path.join(image_root, author, folder)
 
-            print(image_dir, file)
+            # print(image_dir, file)
             if os.path.exists(image_dir):
                 image_files = [f for f in os.listdir(image_dir) if f.endswith(('.png', '.jpg'))]
                 for file in image_files:
@@ -85,7 +87,7 @@ class MusicImageDataset(Dataset):
         composer, piece, _ = rel_path.split(os.sep)
         midi_key = f"{composer}/{piece}"
 
-        image = Image.open(img_path).convert('1')
+        image = Image.open(img_path).convert('L')
         if self.image_transform:
             image = self.image_transform(image)
 
@@ -145,7 +147,7 @@ def extract_notes_from_midi(midi_path, left_hand_tracks, right_hand_tracks):
         right_events = extract_events_from_track(right_hand_track, 1)  # 1 for right
         all_events += right_events
 
-    # all_events.sort(key=lambda x: (x[0], x[1], x[2]))  # sort by time, then hand, then note
+    # all_events.sort(key=lambda x: (x[0], x[1], x[3]))  # sort by time, then hand, then velocity
     all_events.sort(key=lambda x: (x[0], x[2]))  # sort by time, then velocity
 
     if not all_events:
