@@ -13,6 +13,8 @@ from src.global_variables import SIZE_X, SIZE_Y
 
 image_root = "my_images/my_midi_images"
 midi_root = "generated_songs_processed"
+image_root_test = "my_images_test/my_midi_images"
+midi_root_test = "generated_songs_processed_test"
 selected_image_path = "my_images/my_midi_images/song_1/song_1-1.png"
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -24,7 +26,7 @@ image_transform = transforms.Compose([
     transforms.Normalize(mean=[0.5], std=[0.5])
 ])
 
-def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.0005, weight_decay=0.00001, max_norm=1.0):
+def train_model(model, dataloader, val_dataloader, epochs=50, device=device, learning_rate=0.0005, weight_decay=0.00001, max_norm=1.0):
     learning_data = []
 
     model = model.to(device)
@@ -55,9 +57,24 @@ def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.000
             # print("loss:", loss.item())
             if (i + 1) % 128 == 0:
                 print(f"Epoch {epoch+1}, Batch {i+1}/{len(dataloader)}, Loss: {loss.item():.6f}")
-        avg_loss = total_loss / len(dataloader)
 
-        print(f"Epoch {epoch+1}/{epochs}, Average Loss: {avg_loss:.6f}")
+        total_val_loss = 0
+
+        for i, (images, midi_batch) in enumerate(val_dataloader):
+            images = images.to(device)
+            midi_batch = midi_batch.to(device)
+            output = model(images, midi_batch)
+            # loss = criterion_mse(output, midi_batch)
+            val_loss = criterion(output, midi_batch)
+
+            total_val_loss += val_loss
+
+        avg_loss = total_loss / len(dataloader)
+        avg_val_loss = total_val_loss / len(val_dataloader)
+
+        scheduler.step(avg_loss)
+
+        print(f"Epoch {epoch+1}/{epochs}, Average Loss: {avg_loss:.6f}, Average Validation Loss: {avg_val_loss:.6f}")
         learning_data.append((epoch, avg_loss))
 
     # torch.save(model.state_dict(), '/content/drive/MyDrive/modele_ai/model_bitmap.pth')
@@ -73,7 +90,7 @@ def generate_midi_from_selected_image(model, dataset, image_path, output_midi_pa
     with torch.no_grad():
         output = model(image)
         predicted_sequence = output[0].cpu().detach().numpy().tolist()
-        print(f"Raw predicted sequence: {predicted_sequence[:10]}")
+        print(f"Raw predicted sequence: {predicted_sequence[:32]}")
         # predicted_sequence = [
         #     (1 if h > 0.5 else 0, int(n * 127 + 0.5), int(v * 127 + 0.5), int(dt * dataset.max_delta_time + 0.5))
         #     for h, n, v, dt in predicted_sequence
@@ -84,7 +101,7 @@ def generate_midi_from_selected_image(model, dataset, image_path, output_midi_pa
             for n, v, dt in predicted_sequence
         ]
 
-        print(f"Scaled predicted sequence: {predicted_sequence[:10]}")
+        print(f"Scaled predicted sequence: {predicted_sequence[:32]}")
         sequence_to_midi(predicted_sequence, output_midi_path)
 
 def sequence_to_midi(sequence, output_midi_path):
@@ -94,27 +111,32 @@ def sequence_to_midi(sequence, output_midi_path):
 
     current_time = 0
     events = []
-    for hand, note, velocity, delta_time in sequence:
-        current_time += delta_time
-        events.append((current_time, hand, note, velocity))
+    # for hand, note, velocity, delta_time in sequence:
+    #     current_time += delta_time
+    #     events.append((current_time, hand, note, velocity))
 
-    left_events = [e for e in events if e[1] == 0]
+    for note, velocity, delta_time in sequence:
+        current_time += delta_time
+        events.append((current_time, note, velocity))
+
+    # left_events = [e for e in events if e[1] == 0]
     right_events = [e for e in events if e[1] == 1]
 
-    left_events.sort(key=lambda x: x[0])
+    # left_events.sort(key=lambda x: x[0])
     right_events.sort(key=lambda x: x[0])
 
     def add_events_to_track(track, events):
         prev_time = 0
-        for time, _, note, velocity in events:
+        # for time, _, note, velocity in events:
+        for time, note, velocity in events:
             delta_time = time - prev_time
             track.append(mido.Message('note_on', note=note, velocity=velocity, time=delta_time))
             prev_time = time
 
-    add_events_to_track(left_track, left_events)
+    # add_events_to_track(left_track, left_events)
     add_events_to_track(right_track, right_events)
 
-    mid.tracks.append(left_track)
+    # mid.tracks.append(left_track)
     mid.tracks.append(right_track)
 
     mid.save(output_midi_path)
@@ -138,10 +160,14 @@ if __name__ == "__main__":
     right_hand_tracks = ['Piano right', 'Right', 'Track 0']
     dataset = MusicImageDataset(image_root, midi_root, left_hand_tracks, right_hand_tracks, image_transform,
                                 max_seq_len=max_seq_len, max_midi_files=2048)
+    val_dataset = MusicImageDataset(image_root_test, midi_root_test, left_hand_tracks, right_hand_tracks, image_transform,
+                                max_seq_len=max_seq_len, max_midi_files=4)
+
     dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+    val_dataloader = DataLoader(dataset, shuffle=True)
 
     model = CNNRNNModel(input_channels=1, hidden_dim=256, output_dim=3, max_seq_len=max_seq_len, rnn_layers=2)
-    learning_data = train_model(model, dataloader, epochs=150, device=device, learning_rate=0.0001, weight_decay=0.00001, max_norm=0.5)
+    learning_data = train_model(model, dataloader, val_dataloader, epochs=150, device=device, learning_rate=0.0001, weight_decay=0.00001, max_norm=0.5)
 
     generate_chart(learning_data)
 

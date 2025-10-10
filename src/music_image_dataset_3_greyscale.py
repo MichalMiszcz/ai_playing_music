@@ -51,7 +51,7 @@ class MusicImageDataset(Dataset):
                 records_to_remove.append((folder, author, midi_file))
                 continue
 
-            print(midi_seq)
+            # print(midi_seq)
 
             # file = os.path.splitext(os.path.basename(midi_file))[0]
             folder = os.path.splitext(os.path.basename(midi_file))[0]

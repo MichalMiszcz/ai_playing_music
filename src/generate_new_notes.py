@@ -1,8 +1,7 @@
 import music21
 import random
 import os
-
-WHITE_KEYS = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5']
+from global_variables import WHITE_KEYS
 
 NUM_SONGS = 128
 MEASURES_PER_SONG = 4
