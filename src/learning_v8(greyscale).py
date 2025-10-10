@@ -26,7 +26,7 @@ image_transform = transforms.Compose([
     transforms.Normalize(mean=[0.5], std=[0.5])
 ])
 
-def train_model(model, dataloader, val_dataloader, epochs=50, device=device, learning_rate=0.0005, weight_decay=0.00001, max_norm=1.0):
+def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.0005, weight_decay=0.00001, max_norm=1.0):
     learning_data = []
 
     model = model.to(device)
@@ -54,33 +54,39 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
             optimizer.step()
             total_loss += loss.item()
 
-            # print("loss:", loss.item())
+            print("loss:", loss.item())
             if (i + 1) % 128 == 0:
                 print(f"Epoch {epoch+1}, Batch {i+1}/{len(dataloader)}, Loss: {loss.item():.6f}")
 
-        total_val_loss = 0
-
-        for i, (images, midi_batch) in enumerate(val_dataloader):
-            images = images.to(device)
-            midi_batch = midi_batch.to(device)
-            output = model(images, midi_batch)
-            # loss = criterion_mse(output, midi_batch)
-            val_loss = criterion(output, midi_batch)
-
-            total_val_loss += val_loss
-
         avg_loss = total_loss / len(dataloader)
-        avg_val_loss = total_val_loss / len(val_dataloader)
 
         scheduler.step(avg_loss)
 
-        print(f"Epoch {epoch+1}/{epochs}, Average Loss: {avg_loss:.6f}, Average Validation Loss: {avg_val_loss:.6f}")
+        print(f"Epoch {epoch+1}/{epochs}, Average Loss: {avg_loss:.6f}")
         learning_data.append((epoch, avg_loss))
 
     # torch.save(model.state_dict(), '/content/drive/MyDrive/modele_ai/model_bitmap.pth')
     torch.save(model.state_dict(), 'model_mini.pth')
     print("Model saved as 'model_mini.pth'")
     return learning_data
+
+def test_model(model, val_dataloader, device=device):
+    criterion = torch.nn.HuberLoss(delta=1.0)
+
+    total_val_loss = 0
+
+    for i, (images, midi_batch) in enumerate(val_dataloader):
+        images = images.to(device)
+        midi_batch = midi_batch.to(device)
+        output = model(images, midi_batch)
+        # loss = criterion_mse(output, midi_batch)
+        val_loss = criterion(output, midi_batch)
+
+        total_val_loss += val_loss
+
+    avg_val_loss = total_val_loss / len(val_dataloader)
+
+    print(f"Validation Loss: {avg_val_loss:.6f}")
 
 def generate_midi_from_selected_image(model, dataset, image_path, output_midi_path, device=device):
     model.eval()
@@ -167,7 +173,7 @@ if __name__ == "__main__":
     val_dataloader = DataLoader(dataset, shuffle=True)
 
     model = CNNRNNModel(input_channels=1, hidden_dim=256, output_dim=3, max_seq_len=max_seq_len, rnn_layers=2)
-    learning_data = train_model(model, dataloader, val_dataloader, epochs=150, device=device, learning_rate=0.0001, weight_decay=0.00001, max_norm=0.5)
+    learning_data = train_model(model, dataloader, epochs=150, device=device, learning_rate=0.0001, weight_decay=0.00001, max_norm=0.5)
 
     generate_chart(learning_data)
 
