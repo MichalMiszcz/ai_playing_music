@@ -2,3 +2,6 @@ SIZE_X = 594
 SIZE_Y = 172
 
 WHITE_KEYS = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5']
+
+WHITE_KEYS_MIDI = [60, 62, 64, 65, 67, 69, 71, 72]
+NUM_NOTES = len(WHITE_KEYS_MIDI)
