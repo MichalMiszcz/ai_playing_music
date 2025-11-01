@@ -1,11 +1,10 @@
 import torch
-import torch.nn as nn
-from torchvision import transforms, models
+from torchvision import transforms
 from PIL import Image
 import mido
 
-from src.cnnrnn_model_4_greyscale import CNNRNNModel
-from src.global_variables import NUM_NOTES, WHITE_KEYS_MIDI
+from src.music_program.cnnrnn_model_4_greyscale import CNNRNNModel
+from src.music_program.global_variables import NUM_NOTES, WHITE_KEYS_MIDI
 
 
 def sequence_to_midi(sequence, output_midi_path):
@@ -73,7 +72,7 @@ image_transform = transforms.Compose([
 ])
 
 # image_path = "../my_images/my_midi_images/my_midi_files/song_2/song_2-1.png"
-image_path = "../my_images_test/my_midi_images/my_midi_files/song_0/song_0-1.png"
+image_path = "../all_data/generated/my_images_test/my_midi_images/my_midi_files/song_0/song_0-1.png"
 # image_path = "../data/my_simple_songs/my_images_my_simple_songs/my_midi_images/my_midi_files/c/c-1.png"
 image = Image.open(image_path).convert('L')
 image = image_transform(image).unsqueeze(0)

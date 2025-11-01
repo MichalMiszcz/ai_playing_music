@@ -10,7 +10,7 @@ import random
 
 image_root = "data/images"
 midi_root = "data/processed_midi"
-selected_image_path = "../data/images/albeniz/alb_esp1/alb_esp1-1.png"  # Replace with your image path
+selected_image_path = "../all_data/data/images/albeniz/alb_esp1/alb_esp1-1.png"  # Replace with your image path
 
 # Set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
