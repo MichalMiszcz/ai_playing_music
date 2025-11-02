@@ -30,14 +30,10 @@ def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.000
     learning_data = []
 
     model = model.to(device)
-    # criterion_mse = nn.MSELoss()
     criterion = torch.nn.HuberLoss(delta=1.0)
 
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
-    # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.9)
-    # lambda1 = lambda e: 0.65 ** e
-    # scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda1)
 
     for epoch in range(epochs):
         model.train()
@@ -48,7 +44,6 @@ def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.000
 
             optimizer.zero_grad()
             output = model(images, midi_batch)
-            # loss = criterion_mse(output, midi_batch)
             loss = criterion(output, midi_batch)
             loss.backward()
 
@@ -64,7 +59,6 @@ def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.000
         avg_loss = total_loss / len(dataloader)
 
         scheduler.step(avg_loss)
-        # scheduler.step()
 
         print(f"Epoch {epoch+1}/{epochs}, Average Loss: {avg_loss:.6f}")
         learning_data.append((epoch, avg_loss))
@@ -83,7 +77,6 @@ def test_model(model, val_dataloader, device=device):
         images = images.to(device)
         midi_batch = midi_batch.to(device)
         output = model(images, midi_batch)
-        # loss = criterion_mse(output, midi_batch)
         val_loss = criterion(output, midi_batch)
 
         total_val_loss += val_loss
@@ -101,13 +94,8 @@ def generate_midi_from_selected_image(model, dataset, image_path, output_midi_pa
         output = model(image)
         predicted_sequence = output[0].cpu().detach().numpy().tolist()
         print(f"Raw predicted sequence: {predicted_sequence[:32]}")
-        # predicted_sequence = [
-        #     (1 if h > 0.5 else 0, int(n * 127 + 0.5), int(v * 127 + 0.5), int(dt * dataset.max_delta_time + 0.5))
-        #     for h, n, v, dt in predicted_sequence
-        # ]
 
         final_predicted_sequence = []
-
         for norm_note, norm_vel, norm_dt in predicted_sequence:
             note_idx = int(norm_note * (NUM_NOTES - 1.0) + 0.5)
             note_idx = max(0, min(note_idx, NUM_NOTES - 1))
@@ -118,11 +106,6 @@ def generate_midi_from_selected_image(model, dataset, image_path, output_midi_pa
 
             final_predicted_sequence.append((midi_note, velocity, delta_time))
 
-        # predicted_sequence = [
-        #     (int(WHITE_KEYS_MIDI[n] * 127 + 0.5), int(v * 127 + 0.5), int(dt * dataset.max_delta_time + 0.5))
-        #     for n, v, dt in predicted_sequence
-        # ]
-
         final_predicted_sequence = final_predicted_sequence[:32]
 
         print(f"Scaled predicted sequence: {final_predicted_sequence}")
@@ -130,38 +113,28 @@ def generate_midi_from_selected_image(model, dataset, image_path, output_midi_pa
 
 def sequence_to_midi(sequence, output_midi_path):
     mid = mido.MidiFile(ticks_per_beat=480)
-    left_track = mido.MidiTrack()
     right_track = mido.MidiTrack()
 
     current_time = 0
     events = []
-    # for hand, note, velocity, delta_time in sequence:
-    #     current_time += delta_time
-    #     events.append((current_time, hand, note, velocity))
 
     for note, velocity, delta_time in sequence:
         current_time += delta_time
         events.append((current_time, note, velocity))
 
-    # left_events = [e for e in events if e[1] == 0]
-    # right_events = [e for e in events if e[1] == 1]
     right_events = events
 
-    # left_events.sort(key=lambda x: x[0])
     right_events.sort(key=lambda x: x[0])
 
     def add_events_to_track(track, events):
         prev_time = 0
-        # for time, _, note, velocity in events:
         for time, note, velocity in events:
             delta_time = time - prev_time
             track.append(mido.Message('note_on', note=note, velocity=velocity, time=delta_time))
             prev_time = time
 
-    # add_events_to_track(left_track, left_events)
     add_events_to_track(right_track, right_events)
 
-    # mid.tracks.append(left_track)
     mid.tracks.append(right_track)
 
     mid.save(output_midi_path)
