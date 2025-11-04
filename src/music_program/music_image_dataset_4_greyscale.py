@@ -5,7 +5,7 @@ from PIL import Image
 import os
 import random
 import mido
-from global_variables import WHITE_KEYS_MIDI, NUM_NOTES
+from src.music_program.global_variables import WHITE_KEYS_MIDI, NUM_NOTES
 
 note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
 
