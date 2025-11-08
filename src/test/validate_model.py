@@ -51,13 +51,31 @@ def from_raw_to_midi(sequence):
     final_predicted_sequence = final_predicted_sequence[:32]
     return final_predicted_sequence
 
-def validate_predicted_midi(predicted: list, source: list, count):
-    notes_predicted = [v for v, _, _ in predicted]
-    notes_source = [v for v, _, _ in source]
+def validate_predicted_midi(predicted: list, source: list):
+    notes_predicted = [n for n, _, _ in predicted]
+    notes_source = [n for n, _, _ in source]
+    velocity_predicted = [v for _, v, _ in predicted]
+    velocity_source = [v for _, v, _ in source]
+    delta_time_predicted = [dt for _, _, dt in predicted]
+    delta_time_source = [dt for _, _, dt in source]
 
+    print("--- NOTES ---")
     print("Mean absolute error: ", mean_absolute_error(notes_predicted, notes_source, max_seq_len))
     print("Mean square error: ", mean_square_error(notes_predicted, notes_source, max_seq_len))
     print("Root mean square error: ", root_mean_square_error(notes_predicted, notes_source, max_seq_len))
+    print("Indexes of errors: ", show_errors(notes_predicted, notes_source, max_seq_len))
+
+    print("--- VELOCITY ---")
+    print("Mean absolute error: ", mean_absolute_error(notes_predicted, notes_source, max_seq_len))
+    print("Mean square error: ", mean_square_error(notes_predicted, notes_source, max_seq_len))
+    print("Root mean square error: ", root_mean_square_error(notes_predicted, notes_source, max_seq_len))
+    print("Indexes of errors: ", show_errors(notes_predicted, notes_source, max_seq_len))
+
+    print("--- DELTA TIME ---")
+    print("Mean absolute error: ", mean_absolute_error(notes_predicted, notes_source, max_seq_len))
+    print("Mean square error: ", mean_square_error(notes_predicted, notes_source, max_seq_len))
+    print("Root mean square error: ", root_mean_square_error(notes_predicted, notes_source, max_seq_len))
+    print("Indexes of errors: ", show_errors(notes_predicted, notes_source, max_seq_len))
 
 def main():
     for i, (images, midi_batch) in enumerate(val_dataloader):
@@ -77,12 +95,12 @@ def main():
             source_midi = from_raw_to_midi(midi_batch)
 
             print("Number of note sheets: ", max_midi_files)
-            validate_predicted_midi(predicted_midi, source_midi, max_seq_len)
+            validate_predicted_midi(predicted_midi, source_midi)
 
             print("Predicted:   ", predicted_midi)
             print("Source:      ", source_midi)
 
-            print("\n\n")
+            print("")
 
 if __name__ == '__main__':
     main()
