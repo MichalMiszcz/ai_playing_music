@@ -110,8 +110,6 @@ def extract_notes_from_midi(midi_path, left_hand_tracks, right_hand_tracks):
     left_hand_track = None
     right_hand_track = None
 
-    print(midi_path)
-
     for track in mid.tracks:
         if track.name in left_hand_tracks and left_hand_track is None:
             left_hand_track = track
@@ -130,7 +128,6 @@ def extract_notes_from_midi(midi_path, left_hand_tracks, right_hand_tracks):
 
             if msg.type in ('note_on', 'note_off'):
                 if msg.note in note_to_index:
-                    print(msg)
                     if msg.note in note_to_index:
                         note_idx = note_to_index[msg.note]  # Convert MIDI 60, 62... to values 0, 1...
                         notes_velocity = msg.velocity if msg.type == 'note_on' else 0

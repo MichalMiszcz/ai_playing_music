@@ -5,12 +5,14 @@ from torchvision import transforms
 from src.music_program.cnnrnn_model_4_greyscale import CNNRNNModel
 from src.music_program.global_variables import *
 from src.music_program.music_image_dataset_4_greyscale import MusicImageDataset
+from src.test.accuracy import *
 
-model_path = "../model_new_bigeye.pth"
-image_root_test = "../all_data/generated/my_images_test/my_midi_images"
-midi_root_test = "../all_data/generated/generated_songs_processed_test"
+model_path = "model_new_bigeye.pth"
+image_root_test = "all_data/generated/my_images_test/my_midi_images"
+midi_root_test = "all_data/generated/generated_songs_processed_test"
 
 max_seq_len = 32
+max_midi_files = 16
 left_hand_tracks = ['Piano left', 'Left']
 right_hand_tracks = ['Piano right', 'Right', 'Track 0']
 
@@ -22,7 +24,7 @@ image_transform = transforms.Compose([
 ])
 
 # Dataset
-val_dataset = MusicImageDataset(image_root_test, midi_root_test, left_hand_tracks, right_hand_tracks, image_transform, max_seq_len=max_seq_len, max_midi_files=4)
+val_dataset = MusicImageDataset(image_root_test, midi_root_test, left_hand_tracks, right_hand_tracks, image_transform, max_seq_len=max_seq_len, max_midi_files=max_midi_files)
 val_dataloader = DataLoader(val_dataset, shuffle=True)
 
 # Loading model
@@ -49,22 +51,38 @@ def from_raw_to_midi(sequence):
     final_predicted_sequence = final_predicted_sequence[:32]
     return final_predicted_sequence
 
+def validate_predicted_midi(predicted: list, source: list, count):
+    notes_predicted = [v for v, _, _ in predicted]
+    notes_source = [v for v, _, _ in source]
 
-for i, (images, midi_batch) in enumerate(val_dataloader):
-    with torch.no_grad():
-        images = images.to(device)
-        midi_batch = midi_batch.to(device)
+    print("Mean absolute error: ", mean_absolute_error(notes_predicted, notes_source, max_seq_len))
+    print("Mean square error: ", mean_square_error(notes_predicted, notes_source, max_seq_len))
+    print("Root mean square error: ", root_mean_square_error(notes_predicted, notes_source, max_seq_len))
 
-        output = model(images, midi_batch)
-        predicted_sequence = output[0].cpu().detach().numpy().tolist()
-        predicted_sequence = predicted_sequence[:32]
+def main():
+    for i, (images, midi_batch) in enumerate(val_dataloader):
+        with torch.no_grad():
+            images = images.to(device)
+            midi_batch = midi_batch.to(device)
 
-        midi_batch = midi_batch.cpu()
-        midi_batch = midi_batch.tolist()
-        midi_batch = midi_batch[0]
+            output = model(images, midi_batch)
+            predicted_sequence = output[0].cpu().detach().numpy().tolist()
+            predicted_sequence = predicted_sequence[:32]
 
-        final_predicted_sequence = from_raw_to_midi(predicted_sequence)
-        source_midi = from_raw_to_midi(midi_batch)
+            midi_batch = midi_batch.cpu()
+            midi_batch = midi_batch.tolist()
+            midi_batch = midi_batch[0]
 
-        print("Predicted:   ", final_predicted_sequence)
-        print("Source:      ", source_midi)
+            predicted_midi = from_raw_to_midi(predicted_sequence)
+            source_midi = from_raw_to_midi(midi_batch)
+
+            print("Number of note sheets: ", max_midi_files)
+            validate_predicted_midi(predicted_midi, source_midi, max_seq_len)
+
+            print("Predicted:   ", predicted_midi)
+            print("Source:      ", source_midi)
+
+            print("\n\n")
+
+if __name__ == '__main__':
+    main()
