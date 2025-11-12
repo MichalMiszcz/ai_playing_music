@@ -1,6 +1,7 @@
 import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms
+import pandas as pd
 
 from src.music_program.cnnrnn_model_4_greyscale import CNNRNNModel
 from src.music_program.global_variables import *
@@ -12,7 +13,7 @@ image_root_test = "all_data/generated/my_images_test/my_midi_images"
 midi_root_test = "all_data/generated/generated_songs_processed_test"
 
 max_seq_len = 32
-max_midi_files = 16
+max_midi_files = 8
 left_hand_tracks = ['Piano left', 'Left']
 right_hand_tracks = ['Piano right', 'Right', 'Track 0']
 
@@ -51,6 +52,25 @@ def from_raw_to_midi(sequence):
     final_predicted_sequence = final_predicted_sequence[:32]
     return final_predicted_sequence
 
+def store_stats(predicted, source, max_len, stats_name):
+    mae = mean_absolute_error(predicted, source, max_len)
+    mse = mean_square_error(predicted, source, max_len)
+    rmse = root_mean_square_error(predicted, source, max_len)
+    er = show_errors(predicted, source, max_len)
+    pc = percent_correct(predicted, source, max_len)
+
+    print(f"--- {stats_name} ---")
+    print("Mean absolute error: ", mae)
+    print("Mean square error: ", mse)
+    print("Root mean square error: ", rmse)
+    print("Indexes of errors: ", er)
+    print("Percent of correct: ", pc, "%")
+    print()
+
+    results = {'mean_absolute_error': mae, 'mean_square_error': mse, 'root_mean_square_error': rmse, 'indexes_of_errors': [er], 'percent_correct': pc}
+    df_temp = pd.DataFrame(results)
+    return df_temp
+
 def validate_predicted_midi(predicted: list, source: list):
     notes_predicted = [n for n, _, _ in predicted]
     notes_source = [n for n, _, _ in source]
@@ -59,25 +79,17 @@ def validate_predicted_midi(predicted: list, source: list):
     delta_time_predicted = [dt for _, _, dt in predicted]
     delta_time_source = [dt for _, _, dt in source]
 
-    print("--- NOTES ---")
-    print("Mean absolute error: ", mean_absolute_error(notes_predicted, notes_source, max_seq_len))
-    print("Mean square error: ", mean_square_error(notes_predicted, notes_source, max_seq_len))
-    print("Root mean square error: ", root_mean_square_error(notes_predicted, notes_source, max_seq_len))
-    print("Indexes of errors: ", show_errors(notes_predicted, notes_source, max_seq_len))
+    df_tmp_notes = store_stats(notes_predicted, notes_source, max_seq_len, stats_name='NOTES')
+    df_tmp_velocity = store_stats(velocity_predicted, velocity_source, max_seq_len, stats_name='VELOCITY')
+    df_tmp_delta_time = store_stats(delta_time_predicted, delta_time_source, max_seq_len, stats_name='DELTA TIME')
 
-    print("--- VELOCITY ---")
-    print("Mean absolute error: ", mean_absolute_error(notes_predicted, notes_source, max_seq_len))
-    print("Mean square error: ", mean_square_error(notes_predicted, notes_source, max_seq_len))
-    print("Root mean square error: ", root_mean_square_error(notes_predicted, notes_source, max_seq_len))
-    print("Indexes of errors: ", show_errors(notes_predicted, notes_source, max_seq_len))
-
-    print("--- DELTA TIME ---")
-    print("Mean absolute error: ", mean_absolute_error(notes_predicted, notes_source, max_seq_len))
-    print("Mean square error: ", mean_square_error(notes_predicted, notes_source, max_seq_len))
-    print("Root mean square error: ", root_mean_square_error(notes_predicted, notes_source, max_seq_len))
-    print("Indexes of errors: ", show_errors(notes_predicted, notes_source, max_seq_len))
+    return df_tmp_notes, df_tmp_velocity, df_tmp_delta_time
 
 def main():
+    df_notes = pd.DataFrame()
+    df_velocity = pd.DataFrame()
+    df_delta_time = pd.DataFrame()
+
     for i, (images, midi_batch) in enumerate(val_dataloader):
         with torch.no_grad():
             images = images.to(device)
@@ -95,12 +107,19 @@ def main():
             source_midi = from_raw_to_midi(midi_batch)
 
             print("Number of note sheets: ", max_midi_files)
-            validate_predicted_midi(predicted_midi, source_midi)
+            df_tmp_notes, df_tmp_velocity, df_tmp_delta_time = validate_predicted_midi(predicted_midi, source_midi)
+            df_notes = pd.concat([df_notes, df_tmp_notes], ignore_index=True)
+            df_velocity = pd.concat([df_velocity, df_tmp_velocity], ignore_index=True)
+            df_delta_time = pd.concat([df_delta_time, df_tmp_delta_time], ignore_index=True)
 
             print("Predicted:   ", predicted_midi)
             print("Source:      ", source_midi)
 
             print("")
+
+    df_notes.to_csv("csv/notes_predicted.csv", index=False)
+    df_velocity.to_csv("csv/velocity_predicted.csv", index=False)
+    df_delta_time.to_csv("csv/delta_time_predicted.csv", index=False)
 
 if __name__ == '__main__':
     main()

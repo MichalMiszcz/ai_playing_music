@@ -7,6 +7,16 @@ def show_errors(predicted, source, count):
 
     return errors_index
 
+def percent_correct(predicted, source, count):
+    errors_count = 0
+    for n in range(count):
+        if predicted[n] != source[n]:
+            errors_count += 1
+
+    correct_percent = 100 - (errors_count / count) * 100
+
+    return correct_percent
+
 def mean_absolute_error(predicted, source, count):
     error_sum = 0
     for n in range(count):
