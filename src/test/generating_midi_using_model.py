@@ -47,7 +47,7 @@ def sequence_to_midi(sequence, output_midi_path):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-model = CNNRNNModel(input_channels=1, hidden_dim=512, output_dim=3, rnn_layers=3)
+model = CNNRNNModel(input_channels=1, hidden_dim=512, output_dim=3, rnn_layers=4)
 model.to(device)
 
 # loading model
@@ -77,7 +77,7 @@ with torch.no_grad():
         midi_note = WHITE_KEYS_MIDI[note_idx]
 
         velocity = int(norm_vel * 127.0 + 0.5)
-        delta_time = int(norm_dt * 4032 + 0.5)
+        delta_time = int(norm_dt * 1008 + 0.5)
 
         print(norm_dt)
         print(delta_time)

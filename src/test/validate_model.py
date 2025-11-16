@@ -8,7 +8,7 @@ from src.music_program.global_variables import *
 from src.music_program.music_image_dataset_4_greyscale import MusicImageDataset
 from src.test.accuracy import *
 
-model_path = "model_new_bigeye.pth"
+model_path = "model_multi_notes_v2.pth"
 image_root_test = "all_data/generated/my_images_test/my_midi_images"
 midi_root_test = "all_data/generated/generated_songs_processed_test"
 
@@ -30,7 +30,7 @@ val_dataloader = DataLoader(val_dataset, shuffle=True)
 
 # Loading model
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = CNNRNNModel(input_channels=1, hidden_dim=512, output_dim=3, rnn_layers=3)
+model = CNNRNNModel(input_channels=1, hidden_dim=512, output_dim=3, rnn_layers=4)
 model.to(device)
 
 model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))

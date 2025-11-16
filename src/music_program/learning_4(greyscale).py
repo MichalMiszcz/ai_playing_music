@@ -33,7 +33,8 @@ def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.000
     criterion = torch.nn.HuberLoss(delta=1.0)
 
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
+    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3)
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[200, 290], gamma=0.1)
 
     for epoch in range(epochs):
         model.train()
@@ -58,7 +59,7 @@ def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.000
 
         avg_loss = total_loss / len(dataloader)
 
-        scheduler.step(avg_loss)
+        scheduler.step()
 
         print(f"Epoch {epoch+1}/{epochs}, Average Loss: {avg_loss:.6f}")
         learning_data.append((epoch, avg_loss))
