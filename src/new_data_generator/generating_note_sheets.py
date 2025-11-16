@@ -121,13 +121,13 @@ def midi2jpg(midi_folder_path, image_folder_path):
 
 if __name__ == "__main__":
     # midi_raw_folder_path = "generated_songs_raw"
-    midi_raw_folder_path = "../all_data/generated/generated_songs_raw_test"
+    midi_raw_folder_path = "../src/all_data/generated/generated_songs_raw"
     # processed_folder_path = "data/processed_midi"
     # processed_folder_path = "generated_songs_processed"
-    processed_folder_path = "../all_data/generated/generated_songs_processed_test"
+    processed_folder_path = "../src/all_data/generated/generated_songs_processed"
     # image_folder_path = "data/images"
     # image_folder_path = "my_images/my_midi_images"
-    image_folder_path = "../all_data/generated/my_images_test/my_midi_images"
+    image_folder_path = "../src/all_data/generated/my_images/my_midi_images"
 
     process_midi(midi_raw_folder_path, processed_folder_path, max_duration=8.0, fixed_bpm=120, add_track_name=True)
     midi2jpg(processed_folder_path, image_folder_path)

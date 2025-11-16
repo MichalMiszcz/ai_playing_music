@@ -70,7 +70,7 @@ def preprocess_midi(midi_folder):
 
 
 if __name__ == "__main__":
-    midi_example = "data/processed_midi"
+    midi_example = "all_data/generated/generated_songs_processed"
 
     preprocess_midi(midi_example)
 

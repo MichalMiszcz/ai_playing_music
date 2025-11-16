@@ -1,14 +1,14 @@
 import music21
 import random
 import os
-from global_variables import WHITE_KEYS
+from src.music_program.global_variables import WHITE_KEYS
 
 NUM_SONGS = 128
 MEASURES_PER_SONG = 4
 NOTES_PER_MEASURE = 4
 TEMPO = 120
 
-output_folder_path = "../all_data/generated/generated_songs_raw_test"
+output_folder_path = "../src/all_data/generated/generated_songs_raw_test"
 
 
 def generate_random_song(song_number):
@@ -23,7 +23,8 @@ def generate_random_song(song_number):
     for _ in range(MEASURES_PER_SONG):
         measure_duration = 0.0
         while measure_duration < 4.0:
-            duration = 1.0
+            # duration = 1.0
+            duration = random.choice([1.0, 2.0, 4.0])
             if measure_duration + duration > 4.0:
                 duration = 4.0 - measure_duration
             if duration <= 0:

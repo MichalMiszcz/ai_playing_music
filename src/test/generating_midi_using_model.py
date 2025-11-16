@@ -6,9 +6,9 @@ import mido
 from src.music_program.cnnrnn_model_4_greyscale import CNNRNNModel
 from src.music_program.global_variables import NUM_NOTES, WHITE_KEYS_MIDI
 
-model_path = "../model_new_bigeye.pth"
-image_path = "../all_data/generated/my_images_test/my_midi_images/my_midi_files/song_0/song_0-1.png"
-output_path = "../output_midi.mid"
+model_path = "model_multi_notes.pth"
+image_path = "all_data/generated/my_images/my_midi_images/my_midi_files/song_1/song_1-1.png"
+output_path = "output_midi.mid"
 
 
 def sequence_to_midi(sequence, output_midi_path):
@@ -77,7 +77,10 @@ with torch.no_grad():
         midi_note = WHITE_KEYS_MIDI[note_idx]
 
         velocity = int(norm_vel * 127.0 + 0.5)
-        delta_time = int(norm_dt * 1008 + 0.5)
+        delta_time = int(norm_dt * 4032 + 0.5)
+
+        print(norm_dt)
+        print(delta_time)
 
         final_predicted_sequence.append((midi_note, velocity, delta_time))
 
