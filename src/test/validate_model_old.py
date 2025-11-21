@@ -19,7 +19,7 @@ right_hand_tracks = ['Piano right', 'Right', 'Track 0']
 
 
 image_transform = transforms.Compose([
-    transforms.Resize((SIZE_X, SIZE_Y)),
+    # transforms.Resize((SIZE_X, SIZE_Y)), # Resizing image
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.5], std=[0.5])
 ])
@@ -44,13 +44,8 @@ def from_raw_to_midi(sequence):
         note_idx = max(0, min(note_idx, NUM_NOTES - 1))
         midi_note = WHITE_KEYS_MIDI[note_idx]
 
-        velocity_idx = int(norm_vel * (NUM_VELOCITIES - 1.0) + 0.5)
-        velocity_idx = max(0, min(velocity_idx, NUM_VELOCITIES - 1))
-        velocity = VELOCITY[velocity_idx]
-
-        delta_time_idx = int(norm_dt * (NUM_DELTA_TIME - 1.0) + 0.5)
-        delta_time_idx = max(0, min(delta_time_idx, NUM_DELTA_TIME - 1.0))
-        delta_time = DELTA_TIME[delta_time_idx]
+        velocity = int(norm_vel * 127.0 + 0.5)
+        delta_time = int(norm_dt * 1008 + 0.5)
 
         final_predicted_sequence.append((midi_note, velocity, delta_time))
 

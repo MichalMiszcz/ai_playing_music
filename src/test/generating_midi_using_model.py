@@ -4,10 +4,10 @@ from PIL import Image
 import mido
 
 from src.music_program.cnnrnn_model_4_greyscale import CNNRNNModel
-from src.music_program.global_variables import NUM_NOTES, WHITE_KEYS_MIDI
+from src.music_program.global_variables import *
 
-model_path = "model_multi_notes.pth"
-image_path = "all_data/generated/my_images/my_midi_images/my_midi_files/song_1/song_1-1.png"
+model_path = "model_multi_notes_v4.pth"
+image_path = "all_data/generated/my_images_test/my_midi_images/my_midi_files/kotek/kotek-1.png"
 output_path = "output_midi.mid"
 
 
@@ -47,7 +47,7 @@ def sequence_to_midi(sequence, output_midi_path):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-model = CNNRNNModel(input_channels=1, hidden_dim=512, output_dim=3, rnn_layers=4)
+model = CNNRNNModel(input_channels=1, hidden_dim=512, output_dim=3, rnn_layers=5)
 model.to(device)
 
 # loading model
@@ -55,7 +55,7 @@ model.load_state_dict(torch.load(model_path, map_location=device, weights_only=T
 model.eval()
 
 image_transform = transforms.Compose([
-    # transforms.Resize((SIZE_X, SIZE_Y)), # Resizing image
+    transforms.Resize((SIZE_X, SIZE_Y)),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.5], std=[0.5])
 ])
@@ -76,11 +76,13 @@ with torch.no_grad():
         note_idx = max(0, min(note_idx, NUM_NOTES - 1))
         midi_note = WHITE_KEYS_MIDI[note_idx]
 
-        velocity = int(norm_vel * 127.0 + 0.5)
-        delta_time = int(norm_dt * 1008 + 0.5)
+        velocity_idx = int(norm_vel * (NUM_VELOCITIES - 1.0) + 0.5)
+        velocity_idx = max(0, min(velocity_idx, NUM_VELOCITIES - 1))
+        velocity = VELOCITY[velocity_idx]
 
-        print(norm_dt)
-        print(delta_time)
+        delta_time_idx = int(norm_dt * (NUM_DELTA_TIME - 1.0) + 0.5)
+        delta_time_idx = max(0, min(delta_time_idx, NUM_DELTA_TIME - 1.0))
+        delta_time = DELTA_TIME[delta_time_idx]
 
         final_predicted_sequence.append((midi_note, velocity, delta_time))
 

@@ -5,9 +5,11 @@ from PIL import Image
 import os
 import random
 import mido
-from src.music_program.global_variables import WHITE_KEYS_MIDI, NUM_NOTES
+from src.music_program.global_variables import *
 
 note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
+velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
+delta_time_to_index = {midi_num: i for i, midi_num in enumerate(DELTA_TIME)}
 
 class MusicImageDataset(Dataset):
     def __init__(self, image_root, midi_root, left_hand_tracks=["Piano left"], right_hand_tracks=["Piano right"], image_transform=None, max_seq_len=100, max_midi_files=100):
@@ -65,8 +67,9 @@ class MusicImageDataset(Dataset):
         for record in records_to_remove:
             self.selected_midi_files.remove(record)
 
-        all_delta_times = [delta_time for seq in self.midi_features.values() for _, _, delta_time in seq if delta_time > 0]
-        self.max_delta_time = max(all_delta_times) if all_delta_times else 1
+        # all_delta_times = [delta_time for seq in self.midi_features.values() for _, _, delta_time in seq if delta_time > 0]
+        # self.max_delta_time = max(all_delta_times) if all_delta_times else 1
+        self.max_delta_time = max(DELTA_TIME)
 
         self.image_paths.sort()
         print(f"Selected {len(self.selected_midi_files)} MIDI files and {len(self.image_paths)} images.")
@@ -91,10 +94,10 @@ class MusicImageDataset(Dataset):
         midi_seq = self.midi_features.get(midi_key, [(0, 0, 0)] * self.max_seq_len)
 
         normalized_seq = [
-            (note_idx / (NUM_NOTES - 1.0),  # Normalize 0-7 to the range [0, 1]
-             velocity / 127.0,
-             delta_time / self.max_delta_time)
-            for note_idx, velocity, delta_time in midi_seq
+            (note_idx / (NUM_NOTES - 1.0),
+             velocity_idx / (NUM_VELOCITIES - 1.0),
+             delta_time_idx / (NUM_DELTA_TIME - 1.0))
+            for note_idx, velocity_idx, delta_time_idx in midi_seq
         ]
         midi_tensor = torch.tensor(normalized_seq, dtype=torch.float32)
 
@@ -124,13 +127,13 @@ def extract_notes_from_midi(midi_path, left_hand_tracks, right_hand_tracks):
         events = []
         current_time = 0
         for msg in track:
-            current_time += msg.time
+            current_time += delta_time_to_index[msg.time]
 
             if msg.type in ('note_on', 'note_off'):
                 if msg.note in note_to_index:
                     if msg.note in note_to_index:
-                        note_idx = note_to_index[msg.note]  # Convert MIDI 60, 62... to values 0, 1...
-                        notes_velocity = msg.velocity if msg.type == 'note_on' else 0
+                        note_idx = note_to_index[msg.note]
+                        notes_velocity = velocity_to_index[msg.velocity] if msg.type == 'note_on' else 0
                         events.append((current_time, note_idx, notes_velocity))
         return events
 

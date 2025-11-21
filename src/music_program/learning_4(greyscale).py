@@ -6,7 +6,7 @@ from torchvision import transforms
 from PIL import Image
 import mido
 
-from global_variables import WHITE_KEYS_MIDI, NUM_NOTES
+from global_variables import *
 
 from src.music_program.cnnrnn_model_4_greyscale import CNNRNNModel
 from src.music_program.music_image_dataset_4_greyscale import MusicImageDataset
@@ -21,7 +21,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 image_transform = transforms.Compose([
-    # transforms.Resize((SIZE_X, SIZE_Y)), # resizing image if it's size is too big and makes learning slow
+    transforms.Resize((SIZE_X, SIZE_Y)),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.5], std=[0.5])
 ])
