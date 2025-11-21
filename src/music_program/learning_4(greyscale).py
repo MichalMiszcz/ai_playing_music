@@ -11,11 +11,11 @@ from global_variables import *
 from src.music_program.cnnrnn_model_4_greyscale import CNNRNNModel
 from src.music_program.music_image_dataset_4_greyscale import MusicImageDataset
 
-image_root = "../all_data/generated/my_images/my_midi_images"
-midi_root = "../all_data/generated/generated_songs_processed"
+image_root = "src/all_data/generated/my_images/my_midi_images"
+midi_root = "src/all_data/generated/generated_songs_processed"
 # image_root_test = "my_images_test/my_midi_images"
 # midi_root_test = "generated_songs_processed_test"
-selected_image_path = "../src/all_data/generated/my_images/my_midi_images/my_midi_files/song_1/song_1-1.png"
+selected_image_path = "src/all_data/generated/my_images/my_midi_images/my_midi_files/song_1/song_1-1.png"
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -102,8 +102,13 @@ def generate_midi_from_selected_image(model, dataset, image_path, output_midi_pa
             note_idx = max(0, min(note_idx, NUM_NOTES - 1))
             midi_note = WHITE_KEYS_MIDI[note_idx]
 
-            velocity = int(norm_vel * 127.0 + 0.5)
-            delta_time = int(norm_dt * dataset.max_delta_time + 0.5)
+            velocity_idx = int(norm_vel * (NUM_VELOCITIES - 1.0) + 0.5)
+            velocity_idx = max(0, min(velocity_idx, NUM_VELOCITIES - 1))
+            velocity = VELOCITY[velocity_idx]
+
+            delta_time_idx = int(norm_dt * (NUM_DELTA_TIME - 1.0) + 0.5)
+            delta_time_idx = max(0, min(delta_time_idx, NUM_DELTA_TIME - 1.0))
+            delta_time = DELTA_TIME[delta_time_idx]
 
             final_predicted_sequence.append((midi_note, velocity, delta_time))
 
@@ -158,14 +163,14 @@ if __name__ == "__main__":
     left_hand_tracks = ['Piano left', 'Left']
     right_hand_tracks = ['Piano right', 'Right', 'Track 0']
     dataset = MusicImageDataset(image_root, midi_root, left_hand_tracks, right_hand_tracks, image_transform,
-                                max_seq_len=max_seq_len, max_midi_files=1)
+                                max_seq_len=max_seq_len, max_midi_files=128)
     # val_dataset = MusicImageDataset(image_root_test, midi_root_test, left_hand_tracks, right_hand_tracks, image_transform, max_seq_len=max_seq_len, max_midi_files=4)
 
     dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
     # val_dataloader = DataLoader(dataset, shuffle=True)
 
     model = CNNRNNModel(input_channels=1, hidden_dim=64, output_dim=3, max_seq_len=max_seq_len, rnn_layers=1)
-    learning_data = train_model(model, dataloader, epochs=400, device=device, learning_rate=0.1, weight_decay=0.0001, max_norm=1.0)
+    learning_data = train_model(model, dataloader, epochs=5, device=device, learning_rate=0.1, weight_decay=0.0001, max_norm=1.0)
 
     generate_chart(learning_data)
 

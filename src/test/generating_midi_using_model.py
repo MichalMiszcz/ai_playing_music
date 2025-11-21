@@ -6,13 +6,13 @@ import mido
 from src.music_program.cnnrnn_model_4_greyscale import CNNRNNModel
 from src.music_program.global_variables import *
 
-model_path = "model_multi_notes_v4.pth"
-image_path = "all_data/generated/my_images_test/my_midi_images/my_midi_files/kotek/kotek-1.png"
-output_path = "output_midi.mid"
+model_path = "src/model_multi_notes_v4.pth"
+image_path = "src/all_data/generated/my_images_test/my_midi_images/my_midi_files/song_0/song_0-1.png"
+output_path = "src/output_midi.mid"
 
 
 def sequence_to_midi(sequence, output_midi_path):
-    mid = mido.MidiFile(ticks_per_beat=480)
+    mid = mido.MidiFile(ticks_per_beat=10080)
     right_track = mido.MidiTrack()
 
     current_time = 0
@@ -55,7 +55,7 @@ model.load_state_dict(torch.load(model_path, map_location=device, weights_only=T
 model.eval()
 
 image_transform = transforms.Compose([
-    transforms.Resize((SIZE_X, SIZE_Y)),
+    # transforms.Resize((SIZE_X, SIZE_Y)),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.5], std=[0.5])
 ])
@@ -82,7 +82,7 @@ with torch.no_grad():
 
         delta_time_idx = int(norm_dt * (NUM_DELTA_TIME - 1.0) + 0.5)
         delta_time_idx = max(0, min(delta_time_idx, NUM_DELTA_TIME - 1.0))
-        delta_time = DELTA_TIME[delta_time_idx]
+        delta_time = int(DELTA_TIME[delta_time_idx])
 
         final_predicted_sequence.append((midi_note, velocity, delta_time))
 
