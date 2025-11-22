@@ -21,12 +21,12 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 image_transform = transforms.Compose([
-    transforms.Resize((SIZE_X, SIZE_Y)),
+    transforms.Resize((HEIGHT, WIDTH)),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.5], std=[0.5])
 ])
 
-def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.0005, weight_decay=0.00001, max_norm=1.0):
+def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.0005, weight_decay=0.00001, max_norm=1.0, milestones=[100, 200, 300]):
     learning_data = []
 
     model = model.to(device)
@@ -34,7 +34,7 @@ def train_model(model, dataloader, epochs=50, device=device, learning_rate=0.000
 
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3)
-    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[200, 290], gamma=0.1)
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.1)
 
     for epoch in range(epochs):
         model.train()
@@ -170,7 +170,8 @@ if __name__ == "__main__":
     # val_dataloader = DataLoader(dataset, shuffle=True)
 
     model = CNNRNNModel(input_channels=1, hidden_dim=64, output_dim=3, max_seq_len=max_seq_len, rnn_layers=1)
-    learning_data = train_model(model, dataloader, epochs=5, device=device, learning_rate=0.1, weight_decay=0.0001, max_norm=1.0)
+    epochs = 300
+    learning_data = train_model(model, dataloader, epochs=epochs, device=device, learning_rate=0.1, weight_decay=0.0001, max_norm=1.0, milestones=[epochs-100, epochs-20])
 
     generate_chart(learning_data)
 

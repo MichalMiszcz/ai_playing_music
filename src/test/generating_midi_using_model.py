@@ -6,9 +6,13 @@ import mido
 from src.music_program.cnnrnn_model_4_greyscale import CNNRNNModel
 from src.music_program.global_variables import *
 
-model_path = "src/model_multi_notes_v4.pth"
-image_path = "src/all_data/generated/my_images_test/my_midi_images/my_midi_files/song_0/song_0-1.png"
+model_path = "src/model_multi_notes_v5.pth"
+image_path = "src/all_data/generated/my_images_test/my_midi_images/my_midi_files/kotek/kotek-1.png"
+# image_path = "src/kotek.png"
 output_path = "src/output_midi.mid"
+
+models_hidden_dim = 256
+models_rnn_layers = 5
 
 
 def sequence_to_midi(sequence, output_midi_path):
@@ -47,7 +51,7 @@ def sequence_to_midi(sequence, output_midi_path):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-model = CNNRNNModel(input_channels=1, hidden_dim=512, output_dim=3, rnn_layers=5)
+model = CNNRNNModel(input_channels=1, hidden_dim=models_hidden_dim, output_dim=3, rnn_layers=models_rnn_layers)
 model.to(device)
 
 # loading model
@@ -55,7 +59,7 @@ model.load_state_dict(torch.load(model_path, map_location=device, weights_only=T
 model.eval()
 
 image_transform = transforms.Compose([
-    # transforms.Resize((SIZE_X, SIZE_Y)),
+    transforms.Resize((HEIGHT, WIDTH)),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.5], std=[0.5])
 ])
