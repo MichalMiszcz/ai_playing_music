@@ -6,13 +6,14 @@ import mido
 from src.music_program.cnnrnn_model_4_greyscale import CNNRNNModel
 from src.music_program.global_variables import *
 
-model_path = "src/model_multi_notes_v5.pth"
-image_path = "src/all_data/generated/my_images_test/my_midi_images/my_midi_files/kotek/kotek-1.png"
-# image_path = "src/kotek.png"
+model_path = "src/model_multi_notes_v2.pth"
+# image_path = "src/all_data/generated/my_images_test/my_midi_images/my_midi_files/kotek/kotek-1.png"
+image_path = "src/all_data/generated/my_images/my_midi_images/my_midi_files/song_1/song_1-1.png"
+# image_path = "src/kotek_hr.png"
 output_path = "src/output_midi.mid"
 
-models_hidden_dim = 256
-models_rnn_layers = 5
+models_hidden_dim = 512
+models_rnn_layers = 4
 
 
 def sequence_to_midi(sequence, output_midi_path):
@@ -71,7 +72,7 @@ image = image.to(device)
 with torch.no_grad():
     output = model(image)
     predicted_sequence = output[0].cpu().detach().numpy().tolist()
-    predicted_sequence = predicted_sequence[:32]
+    predicted_sequence = predicted_sequence[:96]
     print(f"Raw predicted sequence: {predicted_sequence}")
 
     final_predicted_sequence = []
@@ -90,7 +91,7 @@ with torch.no_grad():
 
         final_predicted_sequence.append((midi_note, velocity, delta_time))
 
-    final_predicted_sequence = final_predicted_sequence[:32]
+    final_predicted_sequence = final_predicted_sequence[:96]
     print(f"Final predicted sequence: {final_predicted_sequence}")
 
     sequence_to_midi(final_predicted_sequence, output_path)

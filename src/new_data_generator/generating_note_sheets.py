@@ -1,10 +1,15 @@
 import subprocess
+import random
+
+import music21
 import os
 import sys
 import mido
 from PIL import Image
 
 from os import mkdir
+
+from src.utils import instances
 
 MUSESCORE_EXECUTABLE = "musescore4"
 
@@ -69,32 +74,61 @@ def convert_midi_to_sheet(midi_file, output_file, musescore_path="MuseScore4.exe
         print(e)
         sys.exit(1)
 
+def convert_xml_to_sheet(xml_file, output_file, musescore_path="MuseScore4.exe"):
+    if not os.path.exists(xml_file):
+        print(f"Error: MusicXML file '{xml_file}' not found.")
+        sys.exit(1)
+
+    try:
+        resolution = random.choice([72, 73, 74, 75])
+        print("Resolution:", resolution)
+        command = [musescore_path, f"-r {resolution}", xml_file, "-o", output_file]
+        print("Converting MusicXML to sheet music using MuseScore...")
+        subprocess.run(command, check=True)
+        print(f"Success! Sheet music generated: {output_file}")
+    except subprocess.CalledProcessError as e:
+        print("Error during conversion:")
+        print(e)
+        sys.exit(1)
+
 def process_midi(midi_folder_path, processed_folder_path, max_duration=10.0, fixed_bpm=60, add_track_name=True):
     for root, dirs, files in os.walk(midi_folder_path):
-        for folder in dirs:
-            active_midi_folder = midi_folder_path + "/" + folder
-            active_processed_midi_folder = processed_folder_path + "/" + folder
+        # for folder in dirs:
+        # active_midi_folder = midi_folder_path + "/" + folder
+        active_midi_folder = midi_folder_path
+        # active_processed_midi_folder = processed_folder_path + "/" + folder
+        active_processed_midi_folder = processed_folder_path
 
-            if not os.path.exists(active_processed_midi_folder):
-                mkdir(active_processed_midi_folder)
+        if not os.path.exists(active_processed_midi_folder):
+            mkdir(active_processed_midi_folder)
 
-            for file in os.listdir(os.path.join(root, folder)):
-                input_midi_file = active_midi_folder + "/" + file
-                output_midi_file = active_processed_midi_folder + "/" + file
-                print(f"Processing MIDI: {output_midi_file}")
+        # for file in os.listdir(os.path.join(root, folder)):
+        for file in os.listdir(root):
+            input_midi_file = active_midi_folder + "/" + file
+            output_midi_file = active_processed_midi_folder + "/" + file
+            print(f"Processing MIDI: {output_midi_file}")
 
-                preprocess_midi(input_midi_file, output_midi_file, max_duration=max_duration, fixed_bpm=fixed_bpm, add_track_name=add_track_name)
+            preprocess_midi(input_midi_file, output_midi_file, max_duration=max_duration, fixed_bpm=fixed_bpm, add_track_name=add_track_name)
 
-def midi2jpg(midi_folder_path, image_folder_path):
+def midi2jpg(midi_folder_path, image_folder_path, mode='midi'):
     for root, dirs, files in os.walk(midi_folder_path):
-        for folder in dirs:
-            active_midi_folder = midi_folder_path + "/" + folder
-            active_image_folder = image_folder_path + "/" + folder
+        # for folder in dirs:
+        # active_midi_folder = midi_folder_path + "/" + folder
+        # active_image_folder = image_folder_path + "/" + folder
+        active_midi_folder = midi_folder_path
+        active_image_folder = image_folder_path
 
-            if not os.path.exists(active_image_folder):
-                mkdir(active_image_folder)
+        if not os.path.exists(active_image_folder):
+            mkdir(active_image_folder)
 
-            for file in os.listdir(os.path.join(root, folder)):
+        instances_count = 8
+        instance_num, lock_socket = instances.get_instance_id(max_instances=instances_count)
+
+        all_files = sorted(os.listdir(root))
+
+        # for file in os.listdir(os.path.join(root, folder)):
+        for i, file in enumerate(all_files):
+            if i % instances_count == instance_num - 1:
                 input_midi_file = active_midi_folder + "/" + file
                 file_base = os.path.splitext(file)[0]
 
@@ -111,23 +145,43 @@ def midi2jpg(midi_folder_path, image_folder_path):
                 print(f"Processing MIDI: {input_midi_file}")
                 print(f"Generating sheet music: {output_sheet_file}")
 
-                convert_midi_to_sheet(input_midi_file, output_sheet_file, MUSESCORE_EXECUTABLE)
+                if mode == 'midi':
+                    convert_midi_to_sheet(input_midi_file, output_sheet_file, MUSESCORE_EXECUTABLE)
+                elif mode == 'xml':
+                    convert_xml_to_sheet(input_midi_file, output_sheet_file, MUSESCORE_EXECUTABLE)
 
                 img = Image.open(output_sheet_file_to_change)
-                cropped = img.crop((0, 0, img.width - 1, 172))
+
+                print(img.size)
+                crop_mode = random.choice([1, 2, 3, 4, 5])
+
+                if crop_mode == 1:
+                    crop_values = (10, 115, img.width, round(3*img.height/5, 0))
+                elif crop_mode == 2:
+                    crop_values = (0, 115, img.width - 10, round(3*img.height/5, 0))
+                elif crop_mode == 3:
+                    crop_values = (10, 105, img.width, round(3*img.height/5, 0) - 10)
+                elif crop_mode == 4:
+                    crop_values = (0, 105, img.width - 10, round(3*img.height/5, 0) - 10)
+                else:
+                    crop_values = (0, 125, img.width - 10, round(3*img.height/5, 0) + 10)
+
+                cropped = img.crop(crop_values)
                 # cropped = img.crop((0, 0, img.width, img.height))
                 cropped.save(output_sheet_file_to_change)
 
 
 if __name__ == "__main__":
     # midi_raw_folder_path = "generated_songs_raw"
-    midi_raw_folder_path = "../src/all_data/generated/generated_songs_raw"
+    midi_raw_folder_path = "../src/all_data/generated/generated_complex_midi_raw/my_midi_files"
+    xml_raw_folder_path = "../src/all_data/generated/generated_complex_midi_raw/my_xml_files"
     # processed_folder_path = "data/processed_midi"
     # processed_folder_path = "generated_songs_processed"
-    processed_folder_path = "../src/all_data/generated/generated_songs_processed"
+    processed_folder_path = "../src/all_data/generated/generated_complex_midi_processed/my_midi_files"
     # image_folder_path = "data/images"
     # image_folder_path = "my_images/my_midi_images"
-    image_folder_path = "../src/all_data/generated/my_images_test/my_midi_images"
+    image_folder_path = "../src/all_data/generated/my_complex_images/my_midi_images/my_xml_files"
 
-    process_midi(midi_raw_folder_path, processed_folder_path, max_duration=8.0, fixed_bpm=120, add_track_name=True)
+    # process_midi(midi_raw_folder_path, processed_folder_path, max_duration=16.0, fixed_bpm=120, add_track_name=True)
     # midi2jpg(processed_folder_path, image_folder_path)
+    midi2jpg(xml_raw_folder_path, image_folder_path, 'xml')

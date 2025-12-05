@@ -8,12 +8,16 @@ from src.music_program.global_variables import *
 from src.music_program.music_image_dataset_4_greyscale import MusicImageDataset
 from src.test.accuracy import *
 
-model_path = "model_multi_notes_v5.pth"
-image_root_test = "all_data/generated/my_images_test/my_midi_images"
-midi_root_test = "all_data/generated/generated_songs_processed_test"
+# model_path = "model_multi_notes_v7.pth"
+# image_root_test = "all_data/generated/my_images_test/my_midi_images"
+# midi_root_test = "all_data/generated/generated_songs_processed_test"
 
-max_seq_len = 32
-max_midi_files = 4
+model_path = "model_new_bigeye.pth"
+image_root_test = "all_data/generated/my_images_test_q/my_midi_images"
+midi_root_test = "all_data/generated/generated_songs_processed_test_q"
+
+max_seq_len = 96
+max_midi_files = 128
 left_hand_tracks = ['Piano left', 'Left']
 right_hand_tracks = ['Piano right', 'Right', 'Track 0']
 
@@ -30,7 +34,7 @@ val_dataloader = DataLoader(val_dataset, shuffle=False)
 
 # Loading model
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = CNNRNNModel(input_channels=1, hidden_dim=256, output_dim=3, rnn_layers=5)
+model = CNNRNNModel(input_channels=1, hidden_dim=512, output_dim=3, rnn_layers=3)
 model.to(device)
 
 model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
@@ -54,7 +58,7 @@ def from_raw_to_midi(sequence):
 
         final_predicted_sequence.append((midi_note, velocity, delta_time))
 
-    final_predicted_sequence = final_predicted_sequence[:32]
+    final_predicted_sequence = final_predicted_sequence[:96]
     return final_predicted_sequence
 
 def store_stats(predicted, source, max_len, stats_name):
@@ -102,7 +106,7 @@ def main():
 
             output = model(images, midi_batch)
             predicted_sequence = output[0].cpu().detach().numpy().tolist()
-            predicted_sequence = predicted_sequence[:32]
+            predicted_sequence = predicted_sequence[:96]
 
             midi_batch = midi_batch.cpu()
             midi_batch = midi_batch.tolist()
