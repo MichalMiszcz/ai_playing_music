@@ -6,10 +6,11 @@ class CNNRNNModel(nn.Module):
     def __init__(self, input_channels=1, hidden_dim=1024, output_dim=3, rnn_layers=3, max_seq_len=100):
         super(CNNRNNModel, self).__init__()
         self.max_seq_len = max_seq_len
-        self.cnn = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
-        # self.cnn = models.resnet34(weights=models.ResNet34_Weights.DEFAULT)
+        # self.cnn = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
+        self.cnn = models.resnet34(weights=models.ResNet34_Weights.DEFAULT)
         # self.cnn = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
-        self.cnn.conv1 = nn.Conv2d(input_channels, 64, kernel_size=(32, 12), stride=(2, 1), padding=0, bias=False)
+        # self.cnn.conv1 = nn.Conv2d(input_channels, 64, kernel_size=(32, 12), stride=(2, 1), padding=0, bias=False)
+        self.cnn.conv1 = nn.Conv2d(input_channels, 64, kernel_size=(32, 12), stride=(4, 2), padding=8, bias=False)
         self.cnn.fc = nn.Linear(512, hidden_dim) # ResNet34 and 18
         # self.cnn.fc = nn.Linear(2048, hidden_dim) # ResNet50
         self.cnn.avgpool = nn.AdaptiveAvgPool2d((1, 1))

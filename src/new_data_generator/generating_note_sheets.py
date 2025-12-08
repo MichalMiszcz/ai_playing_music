@@ -110,7 +110,7 @@ def process_midi(midi_folder_path, processed_folder_path, max_duration=10.0, fix
 
             preprocess_midi(input_midi_file, output_midi_file, max_duration=max_duration, fixed_bpm=fixed_bpm, add_track_name=add_track_name)
 
-def midi2jpg(midi_folder_path, image_folder_path, mode='midi'):
+def midi2jpg(midi_folder_path, image_folder_path, mode='midi', instances_count = 1):
     for root, dirs, files in os.walk(midi_folder_path):
         # for folder in dirs:
         # active_midi_folder = midi_folder_path + "/" + folder
@@ -121,7 +121,6 @@ def midi2jpg(midi_folder_path, image_folder_path, mode='midi'):
         if not os.path.exists(active_image_folder):
             mkdir(active_image_folder)
 
-        instances_count = 8
         instance_num, lock_socket = instances.get_instance_id(max_instances=instances_count)
 
         all_files = sorted(os.listdir(root))
@@ -155,16 +154,19 @@ def midi2jpg(midi_folder_path, image_folder_path, mode='midi'):
                 print(img.size)
                 crop_mode = random.choice([1, 2, 3, 4, 5])
 
-                if crop_mode == 1:
-                    crop_values = (10, 115, img.width, round(3*img.height/5, 0))
-                elif crop_mode == 2:
-                    crop_values = (0, 115, img.width - 10, round(3*img.height/5, 0))
-                elif crop_mode == 3:
-                    crop_values = (10, 105, img.width, round(3*img.height/5, 0) - 10)
-                elif crop_mode == 4:
-                    crop_values = (0, 105, img.width - 10, round(3*img.height/5, 0) - 10)
+                if mode == 'midi':
+                    crop_values = (0, 0, img.width - 10, round(3 * img.height / 5, 0) - 115)
                 else:
-                    crop_values = (0, 125, img.width - 10, round(3*img.height/5, 0) + 10)
+                    if crop_mode == 1:
+                        crop_values = (10, 115, img.width, round(3*img.height/5, 0))
+                    elif crop_mode == 2:
+                        crop_values = (0, 115, img.width - 10, round(3*img.height/5, 0))
+                    elif crop_mode == 3:
+                        crop_values = (10, 105, img.width, round(3*img.height/5, 0) - 10)
+                    elif crop_mode == 4:
+                        crop_values = (0, 105, img.width - 10, round(3*img.height/5, 0) - 10)
+                    else:
+                        crop_values = (0, 125, img.width - 10, round(3*img.height/5, 0) + 10)
 
                 cropped = img.crop(crop_values)
                 # cropped = img.crop((0, 0, img.width, img.height))
@@ -173,15 +175,15 @@ def midi2jpg(midi_folder_path, image_folder_path, mode='midi'):
 
 if __name__ == "__main__":
     # midi_raw_folder_path = "generated_songs_raw"
-    midi_raw_folder_path = "../src/all_data/generated/generated_complex_midi_raw/my_midi_files"
-    xml_raw_folder_path = "../src/all_data/generated/generated_complex_midi_raw/my_xml_files"
+    midi_raw_folder_path = "../src/all_data/generated/generated_complex_midi_test/my_midi_files"
+    xml_raw_folder_path = "../src/all_data/generated/generated_complex_midi_test/my_xml_files"
     # processed_folder_path = "data/processed_midi"
     # processed_folder_path = "generated_songs_processed"
     processed_folder_path = "../src/all_data/generated/generated_complex_midi_processed/my_midi_files"
     # image_folder_path = "data/images"
     # image_folder_path = "my_images/my_midi_images"
-    image_folder_path = "../src/all_data/generated/my_complex_images/my_midi_images/my_xml_files"
+    image_folder_path = "../src/all_data/generated/my_complex_images_test/my_midi_images/my_midi_files"
 
-    # process_midi(midi_raw_folder_path, processed_folder_path, max_duration=16.0, fixed_bpm=120, add_track_name=True)
+    # process_midi(midi_raw_folder_path, processed_folder_path, max_duration=24.0, fixed_bpm=120, add_track_name=True)
     # midi2jpg(processed_folder_path, image_folder_path)
     midi2jpg(xml_raw_folder_path, image_folder_path, 'xml')

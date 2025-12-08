@@ -23,6 +23,8 @@ def generate_random_song(song_number):
 
     for i in range(measures_per_song):
         measure = music21.stream.Measure()
+        measure.number = i + 1
+
         if i % 4 == 0:
             measure.append(music21.layout.SystemLayout(isNew=True))
 
@@ -74,7 +76,7 @@ def generate_random_song(song_number):
 def main():
     instance_num, lock_socket = instances.get_instance_id()
 
-    # for i in range(1, int(NUM_SONGS/4) + 1):
+    # for i in range(1, int(NUM_SONGS) + 1):
     #     generate_random_song(i)
 
     for i in range(int((instance_num-1) * NUM_SONGS/4) + 1, int(instance_num * NUM_SONGS/4) + 1):

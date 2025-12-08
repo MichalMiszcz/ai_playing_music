@@ -12,10 +12,10 @@ from src.music_program.cnnrnn_model_4_greyscale import CNNRNNModel
 from src.music_program.music_image_dataset_4_greyscale import MusicImageDataset
 
 image_root = "src/all_data/generated/my_complex_images/my_midi_images"
-midi_root = "src/all_data/generated/generated_songs_processed"
+midi_root = "src/all_data/generated/generated_complex_midi_processed"
 # image_root_test = "my_images_test/my_midi_images"
 # midi_root_test = "generated_songs_processed_test"
-selected_image_path = "src/all_data/generated/my_complex_images/my_midi_images/my_xml_files/song_1/song_1-1.png"
+selected_image_path = "src/all_data/generated/my_complex_images/my_midi_images/my_midi_files/song_1/song_1-1.png"
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
