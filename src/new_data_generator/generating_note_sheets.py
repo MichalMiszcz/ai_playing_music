@@ -9,6 +9,7 @@ from PIL import Image
 
 from os import mkdir
 
+from src.test.validate_model_old import left_hand_tracks
 from src.utils import instances
 
 MUSESCORE_EXECUTABLE = "musescore4"
@@ -80,7 +81,7 @@ def convert_xml_to_sheet(xml_file, output_file, musescore_path="MuseScore4.exe")
         sys.exit(1)
 
     try:
-        resolution = random.choice([72, 73, 74, 75])
+        resolution = random.randint(72, 80)
         print("Resolution:", resolution)
         command = [musescore_path, f"-r {resolution}", xml_file, "-o", output_file]
         print("Converting MusicXML to sheet music using MuseScore...")
@@ -151,25 +152,20 @@ def midi2jpg(midi_folder_path, image_folder_path, mode='midi', instances_count =
 
                 img = Image.open(output_sheet_file_to_change)
 
-                print(img.size)
-                crop_mode = random.choice([1, 2, 3, 4, 5])
-
                 if mode == 'midi':
                     crop_values = (0, 0, img.width - 10, round(3 * img.height / 5, 0) - 115)
                 else:
-                    if crop_mode == 1:
-                        crop_values = (10, 115, img.width, round(3*img.height/5, 0))
-                    elif crop_mode == 2:
-                        crop_values = (0, 115, img.width - 10, round(3*img.height/5, 0))
-                    elif crop_mode == 3:
-                        crop_values = (10, 105, img.width, round(3*img.height/5, 0) - 10)
-                    elif crop_mode == 4:
-                        crop_values = (0, 105, img.width - 10, round(3*img.height/5, 0) - 10)
-                    else:
-                        crop_values = (0, 125, img.width - 10, round(3*img.height/5, 0) + 10)
+                    crop_y = random.randint(0, 25)
+                    crop_x = random.randint(0, 10)
+
+                    left = 10 - crop_x
+                    right = img.width - crop_x
+                    top = 100 + crop_y
+                    bottom = round(3 * img.height / 5, 0) - 15 + crop_y
+
+                    crop_values = (left, top, right, bottom)
 
                 cropped = img.crop(crop_values)
-                # cropped = img.crop((0, 0, img.width, img.height))
                 cropped.save(output_sheet_file_to_change)
 
 
@@ -186,4 +182,4 @@ if __name__ == "__main__":
 
     # process_midi(midi_raw_folder_path, processed_folder_path, max_duration=24.0, fixed_bpm=120, add_track_name=True)
     # midi2jpg(processed_folder_path, image_folder_path)
-    midi2jpg(xml_raw_folder_path, image_folder_path, 'xml')
+    midi2jpg(xml_raw_folder_path, image_folder_path, 'xml', instances_count=8)
