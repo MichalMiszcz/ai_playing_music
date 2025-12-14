@@ -1,3 +1,14 @@
+from dtaidistance import dtw
+
+def dynamic_time_warping_score(df_predicted, df_source, column: str):
+    time_series_a = df_predicted[[column]].to_numpy()
+    time_series_b = df_source[[column]].to_numpy()
+
+    distance, paths = dtw.warping_paths(time_series_a, time_series_b, use_c=False)
+    best_path = dtw.best_path(paths)
+
+    similarity_score = distance / len(best_path)
+    return similarity_score
 
 def show_errors(predicted, source, count):
     errors_index = []

@@ -8,16 +8,18 @@ from src.music_program.global_variables import *
 from src.music_program.music_image_dataset_4_greyscale import MusicImageDataset
 from src.test.accuracy import *
 
-# model_path = "model_multi_notes_v7.pth"
-# image_root_test = "all_data/generated/my_images_test/my_midi_images"
-# midi_root_test = "all_data/generated/generated_songs_processed_test"
+model_path = "model_multi_lines_v4.pth"
+image_root_test = "all_data/generated/my_complex_images/my_midi_images"
+midi_root_test = "all_data/generated/generated_complex_midi_processed"
 
-model_path = "model_new_bigeye.pth"
-image_root_test = "all_data/generated/my_images_test_q/my_midi_images"
-midi_root_test = "all_data/generated/generated_songs_processed_test_q"
+midi_columns = ['midi_note', 'velocity', 'delta_time']
+
+# model_path = "model_new_bigeye.pth"
+# image_root_test = "all_data/generated/my_images_test_q/my_midi_images"
+# midi_root_test = "all_data/generated/generated_songs_processed_test_q"
 
 max_seq_len = 96
-max_midi_files = 128
+max_midi_files = 2
 left_hand_tracks = ['Piano left', 'Left']
 right_hand_tracks = ['Piano right', 'Right', 'Track 0']
 
@@ -34,7 +36,7 @@ val_dataloader = DataLoader(val_dataset, shuffle=False)
 
 # Loading model
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = CNNRNNModel(input_channels=1, hidden_dim=512, output_dim=3, rnn_layers=3)
+model = CNNRNNModel(input_channels=1, hidden_dim=384, output_dim=3, rnn_layers=5, max_seq_len=max_seq_len)
 model.to(device)
 
 model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
@@ -58,7 +60,7 @@ def from_raw_to_midi(sequence):
 
         final_predicted_sequence.append((midi_note, velocity, delta_time))
 
-    final_predicted_sequence = final_predicted_sequence[:96]
+    final_predicted_sequence = final_predicted_sequence[:max_seq_len]
     return final_predicted_sequence
 
 def store_stats(predicted, source, max_len, stats_name):
@@ -80,19 +82,37 @@ def store_stats(predicted, source, max_len, stats_name):
     df_temp = pd.DataFrame(results)
     return df_temp
 
-def validate_predicted_midi(predicted: list, source: list):
-    notes_predicted = [n for n, _, _ in predicted]
-    notes_source = [n for n, _, _ in source]
-    velocity_predicted = [v for _, v, _ in predicted]
-    velocity_source = [v for _, v, _ in source]
-    delta_time_predicted = [dt for _, _, dt in predicted]
-    delta_time_source = [dt for _, _, dt in source]
+def calculate_metric_for_column(df_predicted, df_source, column: str):
+    notes_stats_df = pd.DataFrame()
+    dtw_score = dynamic_time_warping_score(df_predicted, df_source, column)
+    notes_stats_df['dtw_score'] = [dtw_score]
+    return notes_stats_df
 
-    df_tmp_notes = store_stats(notes_predicted, notes_source, max_seq_len, stats_name='NOTES')
-    df_tmp_velocity = store_stats(velocity_predicted, velocity_source, max_seq_len, stats_name='VELOCITY')
-    df_tmp_delta_time = store_stats(delta_time_predicted, delta_time_source, max_seq_len, stats_name='DELTA TIME')
+def validate_predicted_midi(df_predicted: pd.DataFrame, df_source: pd.DataFrame):
+    # notes_predicted = [n for n, _, _ in predicted]
+    # notes_source = [n for n, _, _ in source]
+    # velocity_predicted = [v for _, v, _ in predicted]
+    # velocity_source = [v for _, v, _ in source]
+    # delta_time_predicted = [dt for _, _, dt in predicted]
+    # delta_time_source = [dt for _, _, dt in source]
+    #
+    # df_tmp_notes = store_stats(notes_predicted, notes_source, max_seq_len, stats_name='NOTES')
+    # df_tmp_velocity = store_stats(velocity_predicted, velocity_source, max_seq_len, stats_name='VELOCITY')
+    # df_tmp_delta_time = store_stats(delta_time_predicted, delta_time_source, max_seq_len, stats_name='DELTA TIME')
 
-    return df_tmp_notes, df_tmp_velocity, df_tmp_delta_time
+    stats = {}
+    columns = midi_columns
+    for column in columns:
+        stats[column] = calculate_metric_for_column(df_predicted, df_source, column)
+
+    return stats['midi_note'], stats['velocity'], stats['delta_time']
+
+def midi_to_df(midi_seq):
+    df_midi = pd.DataFrame(midi_seq, columns=midi_columns)
+    df_midi['delta_time_s'] = df_midi['delta_time'] / (10080 * 2)  # quarter note = 0.5s
+    df_midi['time'] = df_midi['delta_time_s'].cumsum()
+
+    return df_midi
 
 def main():
     df_notes = pd.DataFrame()
@@ -106,7 +126,7 @@ def main():
 
             output = model(images, midi_batch)
             predicted_sequence = output[0].cpu().detach().numpy().tolist()
-            predicted_sequence = predicted_sequence[:96]
+            predicted_sequence = predicted_sequence[:max_seq_len]
 
             midi_batch = midi_batch.cpu()
             midi_batch = midi_batch.tolist()
@@ -115,8 +135,10 @@ def main():
             predicted_midi = from_raw_to_midi(predicted_sequence)
             source_midi = from_raw_to_midi(midi_batch)
 
-            print("Number of note sheets: ", max_midi_files)
-            df_tmp_notes, df_tmp_velocity, df_tmp_delta_time = validate_predicted_midi(predicted_midi, source_midi)
+            df_predicted_midi = midi_to_df(predicted_midi)
+            df_source_midi = midi_to_df(source_midi)
+
+            df_tmp_notes, df_tmp_velocity, df_tmp_delta_time = validate_predicted_midi(df_predicted_midi, df_source_midi)
             df_notes = pd.concat([df_notes, df_tmp_notes], ignore_index=True)
             df_velocity = pd.concat([df_velocity, df_tmp_velocity], ignore_index=True)
             df_delta_time = pd.concat([df_delta_time, df_tmp_delta_time], ignore_index=True)
@@ -126,9 +148,9 @@ def main():
 
             print("")
 
-    df_notes.to_csv("csv/notes_predicted.csv", index=False)
-    df_velocity.to_csv("csv/velocity_predicted.csv", index=False)
-    df_delta_time.to_csv("csv/delta_time_predicted.csv", index=False)
+    df_notes.to_csv("csv/notes_stats.csv", index=False)
+    df_velocity.to_csv("csv/velocity_stats.csv", index=False)
+    df_delta_time.to_csv("csv/delta_time_stats.csv", index=False)
 
 if __name__ == '__main__':
     main()
