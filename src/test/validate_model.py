@@ -8,7 +8,7 @@ from src.music_program.global_variables import *
 from src.music_program.music_image_dataset_4_greyscale import MusicImageDataset
 from src.test.accuracy import *
 
-model_path = "model_multi_lines_v4.pth"
+model_path = "model_multi_lines.pth"
 image_root_test = "all_data/generated/my_complex_images/my_midi_images"
 midi_root_test = "all_data/generated/generated_complex_midi_processed"
 
@@ -19,7 +19,7 @@ midi_columns = ['midi_note', 'velocity', 'delta_time']
 # midi_root_test = "all_data/generated/generated_songs_processed_test_q"
 
 max_seq_len = 96
-max_midi_files = 2
+max_midi_files = 128
 left_hand_tracks = ['Piano left', 'Left']
 right_hand_tracks = ['Piano right', 'Right', 'Track 0']
 
@@ -36,7 +36,7 @@ val_dataloader = DataLoader(val_dataset, shuffle=False)
 
 # Loading model
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = CNNRNNModel(input_channels=1, hidden_dim=384, output_dim=3, rnn_layers=5, max_seq_len=max_seq_len)
+model = CNNRNNModel(input_channels=1, hidden_dim=512, output_dim=3, rnn_layers=6, max_seq_len=max_seq_len)
 model.to(device)
 
 model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
@@ -89,23 +89,14 @@ def calculate_metric_for_column(df_predicted, df_source, column: str):
     return notes_stats_df
 
 def validate_predicted_midi(df_predicted: pd.DataFrame, df_source: pd.DataFrame):
-    # notes_predicted = [n for n, _, _ in predicted]
-    # notes_source = [n for n, _, _ in source]
-    # velocity_predicted = [v for _, v, _ in predicted]
-    # velocity_source = [v for _, v, _ in source]
-    # delta_time_predicted = [dt for _, _, dt in predicted]
-    # delta_time_source = [dt for _, _, dt in source]
-    #
-    # df_tmp_notes = store_stats(notes_predicted, notes_source, max_seq_len, stats_name='NOTES')
-    # df_tmp_velocity = store_stats(velocity_predicted, velocity_source, max_seq_len, stats_name='VELOCITY')
-    # df_tmp_delta_time = store_stats(delta_time_predicted, delta_time_source, max_seq_len, stats_name='DELTA TIME')
+    stats_df = pd.DataFrame()
 
-    stats = {}
-    columns = midi_columns
-    for column in columns:
-        stats[column] = calculate_metric_for_column(df_predicted, df_source, column)
+    stats = dynamic_time_warping_score_multi_col(df_predicted, df_source, [midi_columns[0], 'time'])
 
-    return stats['midi_note'], stats['velocity'], stats['delta_time']
+    stats_df['DTW score'] = [stats]
+
+    return stats_df
+    # return stats['midi_note'], stats['velocity'], stats['delta_time']
 
 def midi_to_df(midi_seq):
     df_midi = pd.DataFrame(midi_seq, columns=midi_columns)
@@ -138,19 +129,19 @@ def main():
             df_predicted_midi = midi_to_df(predicted_midi)
             df_source_midi = midi_to_df(source_midi)
 
-            df_tmp_notes, df_tmp_velocity, df_tmp_delta_time = validate_predicted_midi(df_predicted_midi, df_source_midi)
+            df_tmp_notes = validate_predicted_midi(df_predicted_midi, df_source_midi)
             df_notes = pd.concat([df_notes, df_tmp_notes], ignore_index=True)
-            df_velocity = pd.concat([df_velocity, df_tmp_velocity], ignore_index=True)
-            df_delta_time = pd.concat([df_delta_time, df_tmp_delta_time], ignore_index=True)
+            # df_velocity = pd.concat([df_velocity, df_tmp_velocity], ignore_index=True)
+            # df_delta_time = pd.concat([df_delta_time, df_tmp_delta_time], ignore_index=True)
 
-            print("Predicted:   ", predicted_midi)
-            print("Source:      ", source_midi)
+            # print("Predicted:   ", predicted_midi)
+            # print("Source:      ", source_midi)
 
-            print("")
+            # print("")
 
     df_notes.to_csv("csv/notes_stats.csv", index=False)
-    df_velocity.to_csv("csv/velocity_stats.csv", index=False)
-    df_delta_time.to_csv("csv/delta_time_stats.csv", index=False)
+    # df_velocity.to_csv("csv/velocity_stats.csv", index=False)
+    # df_delta_time.to_csv("csv/delta_time_stats.csv", index=False)
 
 if __name__ == '__main__':
     main()
