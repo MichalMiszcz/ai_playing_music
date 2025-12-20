@@ -8,7 +8,7 @@ from src.music_program.global_variables import *
 from src.music_program.music_image_dataset_4_greyscale import MusicImageDataset
 from src.test.accuracy import *
 
-model_path = "model_multi_lines.pth"
+model_path = "model_multi_lines_v5.pth"
 image_root_test = "all_data/generated/my_complex_images/my_midi_images"
 midi_root_test = "all_data/generated/generated_complex_midi_processed"
 
@@ -19,7 +19,7 @@ midi_columns = ['midi_note', 'velocity', 'delta_time']
 # midi_root_test = "all_data/generated/generated_songs_processed_test_q"
 
 max_seq_len = 96
-max_midi_files = 128
+max_midi_files = 4
 left_hand_tracks = ['Piano left', 'Left']
 right_hand_tracks = ['Piano right', 'Right', 'Track 0']
 
@@ -36,7 +36,7 @@ val_dataloader = DataLoader(val_dataset, shuffle=False)
 
 # Loading model
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = CNNRNNModel(input_channels=1, hidden_dim=512, output_dim=3, rnn_layers=6, max_seq_len=max_seq_len)
+model = CNNRNNModel(input_channels=1, hidden_dim=712, output_dim=3, rnn_layers=6, max_seq_len=max_seq_len)
 model.to(device)
 
 model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
@@ -91,9 +91,11 @@ def calculate_metric_for_column(df_predicted, df_source, column: str):
 def validate_predicted_midi(df_predicted: pd.DataFrame, df_source: pd.DataFrame):
     stats_df = pd.DataFrame()
 
-    stats = dynamic_time_warping_score_multi_col(df_predicted, df_source, [midi_columns[0], 'time'])
+    dtw_score = dynamic_time_warping_score_multi_col(df_predicted, df_source, [midi_columns[0], 'time'])
+    levenstein = edit_distance_multi_col(df_predicted, df_source, [midi_columns[0], midi_columns[1], 'delta_time_s'])
 
-    stats_df['DTW score'] = [stats]
+    stats_df['DTW score'] = [dtw_score]
+    stats_df['Levenstein score'] = [levenstein]
 
     return stats_df
     # return stats['midi_note'], stats['velocity'], stats['delta_time']
@@ -134,8 +136,8 @@ def main():
             # df_velocity = pd.concat([df_velocity, df_tmp_velocity], ignore_index=True)
             # df_delta_time = pd.concat([df_delta_time, df_tmp_delta_time], ignore_index=True)
 
-            # print("Predicted:   ", predicted_midi)
-            # print("Source:      ", source_midi)
+            print("Predicted:   ", predicted_midi)
+            print("Source:      ", source_midi)
 
             # print("")
 

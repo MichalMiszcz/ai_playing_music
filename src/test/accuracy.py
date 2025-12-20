@@ -1,6 +1,6 @@
 import numpy as np
 from dtaidistance import dtw
-from scipy.stats import zscore
+from nltk.metrics import edit_distance
 from tslearn.metrics import dtw as ts_dtw
 
 
@@ -21,6 +21,14 @@ def dynamic_time_warping_score_multi_col(df_predicted, df_source, columns):
     df_s = df_source[columns].copy()
 
     score = ts_dtw(df_p, df_s)
+
+    return score
+
+def edit_distance_multi_col(df_predicted, df_source, columns):
+    seq_p = list(df_predicted[columns].itertuples(index=False, name=None))
+    seq_s = list(df_source[columns].itertuples(index=False, name=None))
+
+    score = edit_distance(seq_p, seq_s)
 
     return score
 
