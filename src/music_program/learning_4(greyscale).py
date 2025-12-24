@@ -189,7 +189,7 @@ if __name__ == "__main__":
     left_hand_tracks = ['Piano left', 'Left']
     right_hand_tracks = ['Piano right', 'Right', 'Track 0']
     dataset = MusicImageDataset(image_root, midi_root, left_hand_tracks, right_hand_tracks, image_transform,
-                                max_seq_len=max_seq_len, max_midi_files=128)
+                                max_seq_len=max_seq_len, max_midi_files=128, modify_image=True)
     val_dataset = MusicImageDataset(image_root_test, midi_root_test, left_hand_tracks, right_hand_tracks, image_transform, max_seq_len=max_seq_len, max_midi_files=4)
 
     dataloader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=4, pin_memory=True)

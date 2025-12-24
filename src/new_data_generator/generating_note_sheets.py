@@ -149,6 +149,10 @@ def midi2jpg(midi_folder_path, image_folder_path, mode='midi', instances_count =
                     convert_xml_to_sheet(input_midi_file, output_sheet_file, MUSESCORE_EXECUTABLE)
 
                 img = Image.open(output_sheet_file_to_change)
+                if img.mode == "RGBA":
+                    white_bg = Image.new("RGB", img.size, (255, 255, 255))
+                    white_bg.paste(img, mask=img.split()[3])  # use alpha channel
+                    img = white_bg
 
                 if mode == 'midi':
                     crop_values = (0, 0, img.width - 10, round(3 * img.height / 5, 0) - 115)
@@ -170,14 +174,14 @@ def midi2jpg(midi_folder_path, image_folder_path, mode='midi', instances_count =
 if __name__ == "__main__":
     # midi_raw_folder_path = "generated_songs_raw"
     midi_raw_folder_path = "../src/all_data/generated/generated_complex_midi_test/my_midi_files"
-    xml_raw_folder_path = "../src/all_data/generated/generated_complex_midi_raw/my_xml_files"
+    xml_raw_folder_path = "../src/all_data/generated/generated_complex_midi_test/my_xml_files"
     # processed_folder_path = "data/processed_midi"
     # processed_folder_path = "generated_songs_processed"
     processed_folder_path = "../src/all_data/generated/generated_complex_midi_processed_test/my_midi_files"
     # image_folder_path = "data/images"
     # image_folder_path = "my_images/my_midi_images"
-    image_folder_path = "../src/all_data/generated/my_complex_images/my_midi_images/my_midi_files"
+    image_folder_path = "../src/all_data/generated/my_complex_images_test/my_midi_images/my_midi_files"
 
-    process_midi(midi_raw_folder_path, processed_folder_path, max_duration=24.0, fixed_bpm=120, add_track_name=True)
+    # process_midi(midi_raw_folder_path, processed_folder_path, max_duration=24.0, fixed_bpm=120, add_track_name=True)
     # midi2jpg(processed_folder_path, image_folder_path)
-    # midi2jpg(xml_raw_folder_path, image_folder_path, 'xml', instances_count=1)
+    midi2jpg(xml_raw_folder_path, image_folder_path, 'xml', instances_count=8)

@@ -1,3 +1,5 @@
+import numpy as np
+import cv2
 import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
@@ -12,13 +14,14 @@ velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
 delta_time_to_index = {midi_num: i for i, midi_num in enumerate(DELTA_TIME)}
 
 class MusicImageDataset(Dataset):
-    def __init__(self, image_root, midi_root, left_hand_tracks=["Piano left"], right_hand_tracks=["Piano right"], image_transform=None, max_seq_len=100, max_midi_files=100):
+    def __init__(self, image_root, midi_root, left_hand_tracks=["Piano left"], right_hand_tracks=["Piano right"], image_transform=None, max_seq_len=100, max_midi_files=100, modify_image=False):
         self.image_root = image_root
         self.midi_root = midi_root
         self.left_hand_tracks = left_hand_tracks
         self.right_hand_tracks = right_hand_tracks
         self.image_transform = image_transform if image_transform else transforms.ToTensor()
         self.max_seq_len = max_seq_len
+        self.modify_image = modify_image
 
         midi_files = []
         for root, dirs, files in os.walk(midi_root):
@@ -88,6 +91,15 @@ class MusicImageDataset(Dataset):
         midi_key = f"{composer}/{piece}"
 
         image = Image.open(img_path).convert('L')
+        if self.modify_image:
+            img_array = np.array(image)
+            angle = random.uniform(-2, 2)
+            x_shift = random.randint(-10, 10)
+            y_shift = random.randint(10, 30)
+
+            rotated_array = modify_image_opencv(img_array, angle, x_shift, y_shift)
+
+            image = Image.fromarray(rotated_array)
         if self.image_transform:
             image = self.image_transform(image)
 
@@ -102,6 +114,18 @@ class MusicImageDataset(Dataset):
         midi_tensor = torch.tensor(normalized_seq, dtype=torch.float32)
 
         return image, midi_tensor
+
+def modify_image_opencv(image_array, angle, x_shift, y_shift):
+    (h, w) = image_array.shape[:2]
+    center = (w // 2, h // 2)
+
+    matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+
+    matrix[0, 2] += x_shift
+    matrix[1, 2] += y_shift
+
+    rotated = cv2.warpAffine(image_array, matrix, (w, h), borderValue=(255, 255, 255))
+    return rotated
 
 def extract_notes_from_midi(midi_path, left_hand_tracks, right_hand_tracks):
     try:
