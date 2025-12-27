@@ -1,3 +1,5 @@
+import random
+
 import torch
 import torch.nn as nn
 from torchvision import models
@@ -14,7 +16,7 @@ class CNNRNNModel(nn.Module):
         self.cnn.conv1 = nn.Conv2d(input_channels, 64, kernel_size=(36, 12), stride=(4, 2), padding=8, bias=False)
         # self.cnn.fc = nn.Linear(512, hidden_dim) # ResNet34 and 18
         self.cnn.fc = nn.Linear(2048, hidden_dim) # ResNet50
-        self.cnn.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        # self.cnn.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.rnn = nn.LSTM(input_size=output_dim, hidden_size=hidden_dim, num_layers=rnn_layers, dropout=0.33, batch_first=True)
         self.linear = nn.Linear(hidden_dim, output_dim)
         self.proj_h = nn.Linear(hidden_dim, hidden_dim * rnn_layers)
@@ -22,7 +24,7 @@ class CNNRNNModel(nn.Module):
 
         self.output_dim = output_dim
 
-    def forward(self, x, target=None):
+    def forward(self, x, target=None, teacher_forcing_ratio=1.0):
         batch_size = x.size(0)
         features = self.cnn(x).view(batch_size, -1)
         h0 = self.proj_h(features).view(batch_size, self.rnn.num_layers, -1).transpose(0, 1).contiguous()

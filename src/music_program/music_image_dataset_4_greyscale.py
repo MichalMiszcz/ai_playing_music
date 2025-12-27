@@ -14,7 +14,7 @@ velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
 delta_time_to_index = {midi_num: i for i, midi_num in enumerate(DELTA_TIME)}
 
 class MusicImageDataset(Dataset):
-    def __init__(self, image_root, midi_root, left_hand_tracks=["Piano left"], right_hand_tracks=["Piano right"], image_transform=None, max_seq_len=100, max_midi_files=100, modify_image=False):
+    def __init__(self, image_root, midi_root, left_hand_tracks=["Piano left"], right_hand_tracks=["Piano right"], image_transform=None, max_seq_len=100, max_midi_files=100, modify_image=False, aug_prob = 0.5):
         self.image_root = image_root
         self.midi_root = midi_root
         self.left_hand_tracks = left_hand_tracks
@@ -22,6 +22,7 @@ class MusicImageDataset(Dataset):
         self.image_transform = image_transform if image_transform else transforms.ToTensor()
         self.max_seq_len = max_seq_len
         self.modify_image = modify_image
+        self.aug_prob = aug_prob
 
         midi_files = []
         for root, dirs, files in os.walk(midi_root):
@@ -91,15 +92,19 @@ class MusicImageDataset(Dataset):
         midi_key = f"{composer}/{piece}"
 
         image = Image.open(img_path).convert('L')
-        if self.modify_image:
-            img_array = np.array(image)
-            angle = random.uniform(-2, 2)
-            x_shift = random.randint(-10, 10)
-            y_shift = random.randint(10, 30)
+        apply_augmentation = random.randrange(0, 1)
+        if apply_augmentation <= self.aug_prob:
+            if self.modify_image:
+                img_array = np.array(image)
+                # angle = random.uniform(-2, 2)
+                angle = 0
+                x_shift = random.randint(-10, 10)
+                y_shift = random.randint(0, 30)
 
-            rotated_array = modify_image_opencv(img_array, angle, x_shift, y_shift)
+                rotated_array = modify_image_opencv(img_array, angle, x_shift, y_shift)
 
-            image = Image.fromarray(rotated_array)
+                image = Image.fromarray(rotated_array)
+
         if self.image_transform:
             image = self.image_transform(image)
 

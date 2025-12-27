@@ -157,13 +157,13 @@ def midi2jpg(midi_folder_path, image_folder_path, mode='midi', instances_count =
                 if mode == 'midi':
                     crop_values = (0, 0, img.width - 10, round(3 * img.height / 5, 0) - 115)
                 else:
-                    crop_y = random.randint(0, 25)
+                    crop_y = random.randint(0, 75)
                     crop_x = random.randint(0, 10)
 
                     left = 10 - crop_x
                     right = img.width - crop_x
-                    top = 100 + crop_y
-                    bottom = round(3 * img.height / 5, 0) - 15 + crop_y
+                    top = 250 + crop_y
+                    bottom = round(3 * img.height / 5, 0) - 15 + crop_y + 150
 
                     crop_values = (left, top, right, bottom)
 
@@ -173,15 +173,17 @@ def midi2jpg(midi_folder_path, image_folder_path, mode='midi', instances_count =
 
 if __name__ == "__main__":
     # midi_raw_folder_path = "generated_songs_raw"
-    midi_raw_folder_path = "../src/all_data/generated/generated_complex_midi_test/my_midi_files"
-    xml_raw_folder_path = "../src/all_data/generated/generated_complex_midi_test/my_xml_files"
+    # midi_raw_folder_path = "../src/all_data/generated/generated_complex_midi_test/my_midi_files"
+    midi_raw_folder_path = "../src/all_data/data_to_analyze/midi"
+    xml_raw_folder_path = "../src/all_data/data_to_analyze/mxml"
     # processed_folder_path = "data/processed_midi"
     # processed_folder_path = "generated_songs_processed"
     processed_folder_path = "../src/all_data/generated/generated_complex_midi_processed_test/my_midi_files"
     # image_folder_path = "data/images"
     # image_folder_path = "my_images/my_midi_images"
-    image_folder_path = "../src/all_data/generated/my_complex_images_test/my_midi_images/my_midi_files"
+    # image_folder_path = "../src/all_data/generated/my_complex_images_test/my_midi_images/my_midi_files"
+    image_folder_path = "../src/all_data/data_to_analyze/hi_res"
 
     # process_midi(midi_raw_folder_path, processed_folder_path, max_duration=24.0, fixed_bpm=120, add_track_name=True)
     # midi2jpg(processed_folder_path, image_folder_path)
-    midi2jpg(xml_raw_folder_path, image_folder_path, 'xml', instances_count=8)
+    midi2jpg(xml_raw_folder_path, image_folder_path, 'xml', instances_count=2)

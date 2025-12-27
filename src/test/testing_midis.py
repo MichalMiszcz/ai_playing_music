@@ -50,7 +50,7 @@ if __name__ == "__main__":
     # midi_example = "../src/generated_songs_processed/my_midi_files/song_2.mid"
     # midi_example = "src/all_data/generated/generated_complex_midi_processed/my_midi_files/song_3.mid"
     # midi_example = "src/output_sheet_vision.mid"
-    midi_example = "src/kotek.mid"
+    midi_example = "src/all_data/data_to_analyze/midi/song_7.mid"
     preprocess_midi(midi_example)
     #
     # midi_example = "src/all_data/generated/generated_songs_processed_test/my_midi_files/song_1.mid"

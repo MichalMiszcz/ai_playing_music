@@ -2,6 +2,7 @@ import numpy as np
 from dtaidistance import dtw
 from nltk.metrics import edit_distance
 from tslearn.metrics import dtw as ts_dtw
+from frechetdist import frdist
 
 
 def dynamic_time_warping_score(df_predicted, df_source, column: str):
@@ -29,6 +30,14 @@ def edit_distance_multi_col(df_predicted, df_source, columns):
     seq_s = list(df_source[columns].itertuples(index=False, name=None))
 
     score = edit_distance(seq_p, seq_s)
+
+    return score
+
+def discrete_frechet(df_predicted, df_source, columns):
+    df_p = df_predicted[columns].copy()
+    df_s = df_source[columns].copy()
+
+    score = frdist(df_p, df_s)
 
     return score
 

@@ -11,7 +11,6 @@ TEMPO = 120
 output_folder_path = "../src/all_data/generated/generated_complex_midi_test"
 
 def generate_random_song(song_number):
-    song_number = song_number
     song = music21.stream.Score()
     part = music21.stream.Part()
 

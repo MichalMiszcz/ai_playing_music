@@ -6,15 +6,16 @@ import mido
 from src.music_program.cnnrnn_model_4_greyscale import CNNRNNModel
 from src.music_program.global_variables import *
 
-model_path = "src/model_multi_lines_v5.pth"
+model_path = "src/model_multi_lines_v9.pth"
 # image_path = "src/all_data/generated/my_images_test/my_midi_images/my_midi_files/kotek/kotek-1.png"
-image_path = "src/all_data/generated/my_complex_images/my_midi_images/my_midi_files/song_1/song_1-1.png"
-# image_path = "src/all_data/generated/my_complex_images_test/my_midi_images/my_midi_files/kotek/kotek-1.png"
+# image_path = "src/all_data/generated/my_complex_images/my_midi_images/my_midi_files/song_1/song_1-1.png"
+image_path = "src/kotek/kotek-1.png"
 # image_path = "src/kotek_hr.png"
+# image_path = "src/all_data/data_to_analyze/hi_res/song_7/song_7-1.png"
 output_path = "src/output_midi.mid"
 
-models_hidden_dim = 712
-models_rnn_layers = 6
+models_hidden_dim = 256
+models_rnn_layers = 4
 
 
 def sequence_to_midi(sequence, output_midi_path):
