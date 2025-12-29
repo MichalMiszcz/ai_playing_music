@@ -80,9 +80,12 @@ def calculate_metric_for_column(df_predicted, df_source, column: str):
 def validate_predicted_midi(df_predicted: pd.DataFrame, df_source: pd.DataFrame):
     stats_df = pd.DataFrame()
 
+    df_predicted['velocity_normalized'] = df_predicted[midi_columns[1]] / 90
+    df_source['velocity_normalized'] = df_source[midi_columns[1]] / 90
+
     dtw_score = dynamic_time_warping_score_multi_col(df_predicted, df_source, [midi_columns[0], 'time'])
-    levenstein = edit_distance_multi_col(df_predicted, df_source, [midi_columns[0], midi_columns[1], 'delta_time_s'])
-    frechet = discrete_frechet(df_predicted, df_source, [midi_columns[0], midi_columns[1], 'time'])
+    levenstein = edit_distance_multi_col(df_predicted, df_source, [midi_columns[0], 'velocity_normalized', 'delta_time_s'])
+    frechet = discrete_frechet(df_predicted, df_source, [midi_columns[0], 'velocity_normalized', 'time'])
 
     stats_df['DTW score'] = [dtw_score]
     stats_df['Levenstein score'] = [levenstein]

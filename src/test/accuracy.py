@@ -37,9 +37,6 @@ def discrete_frechet(df_predicted, df_source, columns):
     df_p = df_predicted[columns].copy()
     df_s = df_source[columns].copy()
 
-    df_p[columns[1]] = df_p[columns[1]] / 90
-    df_s[columns[1]] = df_s[columns[1]] / 90
-
     score = similaritymeasures.frechet_dist(
         df_p.values,
         df_s.values
