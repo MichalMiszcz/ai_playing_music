@@ -2,7 +2,7 @@ import numpy as np
 from dtaidistance import dtw
 from nltk.metrics import edit_distance
 from tslearn.metrics import dtw as ts_dtw
-from frechetdist import frdist
+import similaritymeasures
 
 
 def dynamic_time_warping_score(df_predicted, df_source, column: str):
@@ -37,7 +37,13 @@ def discrete_frechet(df_predicted, df_source, columns):
     df_p = df_predicted[columns].copy()
     df_s = df_source[columns].copy()
 
-    score = frdist(df_p, df_s)
+    df_p[columns[1]] = df_p[columns[1]] / 90
+    df_s[columns[1]] = df_s[columns[1]] / 90
+
+    score = similaritymeasures.frechet_dist(
+        df_p.values,
+        df_s.values
+    )
 
     return score
 

@@ -24,7 +24,7 @@ class CNNRNNModel(nn.Module):
 
         self.output_dim = output_dim
 
-    def forward(self, x, target=None, teacher_forcing_ratio=1.0):
+    def forward(self, x, target=None):
         batch_size = x.size(0)
         features = self.cnn(x).view(batch_size, -1)
         h0 = self.proj_h(features).view(batch_size, self.rnn.num_layers, -1).transpose(0, 1).contiguous()

@@ -1,4 +1,8 @@
+import os
+
+import mido
 import torch
+from sympy.codegen.cnodes import sizeof
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import pandas as pd
@@ -7,8 +11,13 @@ from src.music_program.cnnrnn_model_4_greyscale import CNNRNNModel
 from src.music_program.global_variables import *
 from src.music_program.music_image_dataset_4_greyscale import MusicImageDataset
 from src.test.accuracy import *
+from src.music_program.global_variables import *
 
-model_path = "model_multi_lines_v9.pth"
+note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
+velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
+delta_time_to_index = {midi_num: i for i, midi_num in enumerate(DELTA_TIME)}
+
+model_path = "model_multi_lines_v10.pth"
 image_root_test = "all_data/generated/my_complex_images/my_midi_images"
 midi_root_test = "all_data/generated/generated_complex_midi_processed"
 
@@ -73,7 +82,7 @@ def validate_predicted_midi(df_predicted: pd.DataFrame, df_source: pd.DataFrame)
 
     dtw_score = dynamic_time_warping_score_multi_col(df_predicted, df_source, [midi_columns[0], 'time'])
     levenstein = edit_distance_multi_col(df_predicted, df_source, [midi_columns[0], midi_columns[1], 'delta_time_s'])
-    frechet = discrete_frechet(df_predicted, df_source, [midi_columns[0], 'time'])
+    frechet = discrete_frechet(df_predicted, df_source, [midi_columns[0], midi_columns[1], 'time'])
 
     stats_df['DTW score'] = [dtw_score]
     stats_df['Levenstein score'] = [levenstein]
@@ -89,43 +98,81 @@ def midi_to_df(midi_seq):
 
     return df_midi
 
+def calculate_measures(predicted_sequence, source_sequence):
+    df_predicted_midi = midi_to_df(predicted_sequence)
+    df_source_midi = midi_to_df(source_sequence)
+
+    df_results = validate_predicted_midi(df_predicted_midi, df_source_midi)
+
+    print("Predicted:   ", predicted_sequence)
+    print("Source:      ", source_sequence)
+
+    return df_results
+
+
 def main():
-    df_notes = pd.DataFrame()
-    df_velocity = pd.DataFrame()
-    df_delta_time = pd.DataFrame()
+    df_final_results = pd.DataFrame()
+    test_mode = "midi"
 
-    for i, (images, midi_batch) in enumerate(val_dataloader):
-        with torch.no_grad():
-            images = images.to(device)
-            midi_batch = midi_batch.to(device)
+    right_hand_tracks_for_validation = ['Piano right', 'Right', 'Track 0', 'Track', 'Voice']
+    midi_folder_path = "all_data/model_generated/audiveris/low_res"
+    midi_source_folder_path = "all_data/model_generated/source_midi"
 
-            output = model(images, midi_batch)
-            predicted_sequence = output[0].cpu().detach().numpy().tolist()
-            predicted_sequence = predicted_sequence[:max_seq_len]
+    if test_mode == "model":
+        for i, (images, midi_batch) in enumerate(val_dataloader):
+            with torch.no_grad():
+                images = images.to(device)
+                midi_batch = midi_batch.to(device)
 
-            midi_batch = midi_batch.cpu()
-            midi_batch = midi_batch.tolist()
-            midi_batch = midi_batch[0]
+                output = model(images, midi_batch)
+                predicted_sequence = output[0].cpu().detach().numpy().tolist()
+                predicted_sequence = predicted_sequence[:max_seq_len]
 
-            predicted_midi = from_raw_to_midi(predicted_sequence)
-            source_midi = from_raw_to_midi(midi_batch)
+                midi_batch = midi_batch.cpu()
+                midi_batch = midi_batch.tolist()
+                midi_batch = midi_batch[0]
 
-            df_predicted_midi = midi_to_df(predicted_midi)
-            df_source_midi = midi_to_df(source_midi)
+                predicted_midi_seq = from_raw_to_midi(predicted_sequence)
+                source_midi_seq = from_raw_to_midi(midi_batch)
 
-            df_tmp_notes = validate_predicted_midi(df_predicted_midi, df_source_midi)
-            df_notes = pd.concat([df_notes, df_tmp_notes], ignore_index=True)
-            # df_velocity = pd.concat([df_velocity, df_tmp_velocity], ignore_index=True)
-            # df_delta_time = pd.concat([df_delta_time, df_tmp_delta_time], ignore_index=True)
+                df_results = calculate_measures(predicted_midi_seq, source_midi_seq)
 
-            print("Predicted:   ", predicted_midi)
-            print("Source:      ", source_midi)
+                df_final_results = pd.concat([df_final_results, df_results], ignore_index=True)
 
-            # print("")
+    elif test_mode == "midi":
+        def get_sequence_from_mido(mido: mido.MidiFile, mode = "midi"):
+            sequence = []
+            for j, track in enumerate(mido.tracks):
+                if track.name in right_hand_tracks_for_validation:
+                    for msg in track:
+                        if msg.type in ('note_on', 'note_off'):
+                            time = msg.time
+                            velocity = msg.velocity if msg.type == 'note_on' else 0
+                            if mode == "sheet_vision":
+                                time = int(msg.time * 10.5)
+                                velocity = int(velocity * 0.9)
 
-    df_notes.to_csv("csv/notes_stats.csv", index=False)
-    # df_velocity.to_csv("csv/velocity_stats.csv", index=False)
-    # df_delta_time.to_csv("csv/delta_time_stats.csv", index=False)
+                            sequence.append((msg.note, velocity, time))
+
+            return sequence
+
+        for root, _, files in os.walk(midi_folder_path):
+            for i, file in enumerate(files):
+                midi_dir = os.path.join(root, file)
+                mid = mido.MidiFile(midi_dir)
+                mid_source_dir = os.path.join(midi_source_folder_path, file)
+                mid_source = mido.MidiFile(mid_source_dir)
+                sequence = get_sequence_from_mido(mid, "audiveris")
+                sequence_source = get_sequence_from_mido(mid_source)
+
+                df_results = calculate_measures(sequence, sequence_source)
+                df_final_results = pd.concat([df_final_results, df_results], ignore_index=True)
+
+                print(sequence)
+                print(sequence_source)
+
+
+    df_final_results.to_csv("csv/notes_stats.csv", index=False)
 
 if __name__ == '__main__':
     main()
