@@ -83,13 +83,17 @@ def validate_predicted_midi(df_predicted: pd.DataFrame, df_source: pd.DataFrame)
     df_predicted['velocity_normalized'] = df_predicted[midi_columns[1]] / 90
     df_source['velocity_normalized'] = df_source[midi_columns[1]] / 90
 
-    dtw_score = dynamic_time_warping_score_multi_col(df_predicted, df_source, [midi_columns[0], 'time'])
+    # df_predicted['delta_time_s_normalized'] = df_predicted['delta_time_s'] / 5040
+    # df_source['delta_time_s_normalized'] = df_source['delta_time_s'] / 5040
+
+    # dtw_score = dynamic_time_warping_score_multi_col(df_predicted, df_source, [midi_columns[0], 'delta_time_s_normalized'])
+    dtw_score = dynamic_time_warping_score(df_predicted, df_source)
     levenstein = edit_distance_multi_col(df_predicted, df_source, [midi_columns[0], 'velocity_normalized', 'delta_time_s'])
     frechet = discrete_frechet(df_predicted, df_source, [midi_columns[0], 'velocity_normalized', 'time'])
 
     stats_df['DTW score'] = [dtw_score]
     stats_df['Levenstein score'] = [levenstein]
-    stats_df['DFS score'] = [frechet]
+    stats_df['Frechet score'] = [frechet]
 
     return stats_df
     # return stats['midi_note'], stats['velocity'], stats['delta_time']
@@ -118,8 +122,14 @@ def main():
     test_mode = "midi"
 
     right_hand_tracks_for_validation = ['Piano right', 'Right', 'Track 0', 'Track', 'Voice']
-    midi_folder_path = "all_data/model_generated/audiveris/low_res"
+    model_mode = "scan2notes"
+    res = "low"
+    midi_folder_path = f"all_data/model_generated/{model_mode}/{res}_res"
+    if model_mode == "scan2notes":
+        midi_folder_path = midi_folder_path + "_sorted"
     midi_source_folder_path = "all_data/model_generated/source_midi"
+    csv_file = f"csv/notes_stats_{model_mode}_{res}.csv"
+    max_seq_len = 96
 
     if test_mode == "model":
         for i, (images, midi_batch) in enumerate(val_dataloader):
@@ -146,16 +156,19 @@ def main():
         def get_sequence_from_mido(mido: mido.MidiFile, mode = "midi"):
             sequence = []
             for j, track in enumerate(mido.tracks):
-                if track.name in right_hand_tracks_for_validation:
-                    for msg in track:
-                        if msg.type in ('note_on', 'note_off'):
-                            time = msg.time
-                            velocity = msg.velocity if msg.type == 'note_on' else 0
-                            if mode == "sheet_vision":
-                                time = int(msg.time * 10.5)
-                                velocity = int(velocity * 0.9)
+                # if track.name in right_hand_tracks_for_validation:
+                for msg in track:
+                    if msg.type in ('note_on', 'note_off'):
+                        time = msg.time
+                        velocity = msg.velocity if msg.type == 'note_on' else 0
+                        if mode == "sheet_vision":
+                            time = int(msg.time * 10.5)
+                            velocity = int(velocity * 0.9)
+                        if mode == "scan2notes":
+                            time = int(msg.time * 5040 / 110)
+                            velocity = int(velocity * 9 / 8)
 
-                            sequence.append((msg.note, velocity, time))
+                        sequence.append((msg.note, velocity, time))
 
             return sequence
 
@@ -163,10 +176,17 @@ def main():
             for i, file in enumerate(files):
                 midi_dir = os.path.join(root, file)
                 mid = mido.MidiFile(midi_dir)
+
                 mid_source_dir = os.path.join(midi_source_folder_path, file)
                 mid_source = mido.MidiFile(mid_source_dir)
-                sequence = get_sequence_from_mido(mid, "audiveris")
+                sequence = get_sequence_from_mido(mid, model_mode)
                 sequence_source = get_sequence_from_mido(mid_source)
+
+                if model_mode == "my_model":
+                    current_length = len(sequence_source)
+                    if current_length < max_seq_len:
+                        items_needed = max_seq_len - current_length
+                        sequence_source.extend([(60, 0, 0)] * items_needed)
 
                 df_results = calculate_measures(sequence, sequence_source)
                 df_final_results = pd.concat([df_final_results, df_results], ignore_index=True)
@@ -174,8 +194,7 @@ def main():
                 print(sequence)
                 print(sequence_source)
 
-
-    df_final_results.to_csv("csv/notes_stats.csv", index=False)
+    df_final_results.to_csv(csv_file, index=True)
 
 if __name__ == '__main__':
     main()

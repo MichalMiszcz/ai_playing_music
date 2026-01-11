@@ -4,17 +4,40 @@ from nltk.metrics import edit_distance
 from tslearn.metrics import dtw as ts_dtw
 import similaritymeasures
 
+def create_time_series(df):
+    step = 5040
+    time_series = []
 
-def dynamic_time_warping_score(df_predicted, df_source, column: str):
-    time_series_a = df_predicted[[column]].to_numpy()
-    time_series_b = df_source[[column]].to_numpy()
+    current_note = None
+
+    for _, row in df.iterrows():
+        note = row["midi_note"]
+        velocity = row["velocity"]
+        delta_time = row["delta_time"]
+
+        if velocity > 0:
+            current_note = note
+
+        else:
+            if current_note is not None:
+                steps = int(delta_time // step)
+                time_series.extend([current_note] * steps)
+                current_note = None
+
+    return time_series
+
+def dynamic_time_warping_score(df_predicted, df_source):
+    # time_series_a = df_predicted[[column]].to_numpy()
+    # time_series_b = df_source[[column]].to_numpy()
+
+    time_series_a = create_time_series(df_predicted)
+    time_series_b = create_time_series(df_source)
 
     distance, paths = dtw.warping_paths(time_series_a, time_series_b, use_c=False)
     best_path = dtw.best_path(paths)
 
-    print(best_path)
-
     similarity_score = distance / len(best_path)
+
     return similarity_score
 
 def dynamic_time_warping_score_multi_col(df_predicted, df_source, columns):
