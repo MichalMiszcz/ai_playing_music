@@ -11,7 +11,7 @@ from src.music_program.global_variables import *
 model_path = "src/model_multi_lines_v12.pth"
 # image_path = "src/all_data/generated/my_images_test/my_midi_images/my_midi_files/kotek/kotek-1.png"
 # image_path = "src/all_data/generated/my_complex_images/my_midi_images/my_midi_files/song_1/song_1-1.png"
-# image_path = "src/kotek/kotek-1.png"
+image_path = "src/kotek/kotek-1.png"
 # num = 1
 # image_path = f"src/all_data/data_to_analyze/hi_res/song_{num}/song_{num}-1.png"
 # image_path = "src/kotek_hr.png"
@@ -71,49 +71,80 @@ image_transform = transforms.Compose([
     transforms.Normalize(mean=[0.5], std=[0.5])
 ])
 
-images_folder = 'src/all_data/data_to_analyze/low_res'
-start_from = 9
+image = Image.open(image_path).convert('L')
+image = image_transform(image).unsqueeze(0)
+image = image.to(device)
 
-for root, dirs, files in os.walk(images_folder):
-    for folder in dirs:
-        dir_path = os.path.join(root, folder)
+with torch.no_grad():
+    output = model(image)
+    predicted_sequence = output[0].cpu().detach().numpy().tolist()
+    predicted_sequence = predicted_sequence[:96]
+    print(f"Raw predicted sequence: {predicted_sequence}")
 
-        number = int(''.join(filter(str.isdigit, dir_path)))
-        print(number)
+    final_predicted_sequence = []
+    for norm_note, norm_vel, norm_dt in predicted_sequence:
+        note_idx = int(norm_note * (NUM_NOTES - 1.0) + 0.5)
+        note_idx = max(0, min(note_idx, NUM_NOTES - 1))
+        midi_note = WHITE_KEYS_MIDI[note_idx]
 
-        if number >= start_from:
-            for image_file in os.listdir(dir_path):
-                image_path = os.path.join(dir_path, image_file)
-                image = Image.open(image_path).convert('L')
-                image = image_transform(image).unsqueeze(0)
-                image = image.to(device)
+        velocity_idx = int(norm_vel * (NUM_VELOCITIES - 1.0) + 0.5)
+        velocity_idx = max(0, min(velocity_idx, NUM_VELOCITIES - 1))
+        velocity = VELOCITY[velocity_idx]
 
-                with torch.no_grad():
-                    output = model(image)
-                    predicted_sequence = output[0].cpu().detach().numpy().tolist()
-                    predicted_sequence = predicted_sequence[:96]
-                    print(f"Raw predicted sequence: {predicted_sequence}")
+        delta_time_idx = int(norm_dt * (NUM_DELTA_TIME - 1.0) + 0.5)
+        delta_time_idx = max(0, min(delta_time_idx, NUM_DELTA_TIME - 1.0))
+        delta_time = int(DELTA_TIME[delta_time_idx])
 
-                    final_predicted_sequence = []
-                    for norm_note, norm_vel, norm_dt in predicted_sequence:
-                        note_idx = int(norm_note * (NUM_NOTES - 1.0) + 0.5)
-                        note_idx = max(0, min(note_idx, NUM_NOTES - 1))
-                        midi_note = WHITE_KEYS_MIDI[note_idx]
+        final_predicted_sequence.append((midi_note, velocity, delta_time))
 
-                        velocity_idx = int(norm_vel * (NUM_VELOCITIES - 1.0) + 0.5)
-                        velocity_idx = max(0, min(velocity_idx, NUM_VELOCITIES - 1))
-                        velocity = VELOCITY[velocity_idx]
+    final_predicted_sequence = final_predicted_sequence[:96]
+    print(f"Final predicted sequence: {final_predicted_sequence}")
 
-                        delta_time_idx = int(norm_dt * (NUM_DELTA_TIME - 1.0) + 0.5)
-                        delta_time_idx = max(0, min(delta_time_idx, NUM_DELTA_TIME - 1.0))
-                        delta_time = int(DELTA_TIME[delta_time_idx])
+    sequence_to_midi(final_predicted_sequence, 'output_midi.mid')
 
-                        final_predicted_sequence.append((midi_note, velocity, delta_time))
-
-                        final_predicted_sequence = final_predicted_sequence[:96]
-                        print(f"Final predicted sequence: {final_predicted_sequence}")
-
-                        output_path = f"src/all_data/model_generated/my_model/low_res/song-{number}.mid"
-                        sequence_to_midi(final_predicted_sequence, output_path)
+# images_folder = 'src/all_data/data_to_analyze/low_res'
+# start_from = 9
+#
+# for root, dirs, files in os.walk(images_folder):
+#     for folder in dirs:
+#         dir_path = os.path.join(root, folder)
+#
+#         number = int(''.join(filter(str.isdigit, dir_path)))
+#         print(number)
+#
+#         if number >= start_from:
+#             for image_file in os.listdir(dir_path):
+#                 image_path = os.path.join(dir_path, image_file)
+#                 image = Image.open(image_path).convert('L')
+#                 image = image_transform(image).unsqueeze(0)
+#                 image = image.to(device)
+#
+#                 with torch.no_grad():
+#                     output = model(image)
+#                     predicted_sequence = output[0].cpu().detach().numpy().tolist()
+#                     predicted_sequence = predicted_sequence[:96]
+#                     print(f"Raw predicted sequence: {predicted_sequence}")
+#
+#                     final_predicted_sequence = []
+#                     for norm_note, norm_vel, norm_dt in predicted_sequence:
+#                         note_idx = int(norm_note * (NUM_NOTES - 1.0) + 0.5)
+#                         note_idx = max(0, min(note_idx, NUM_NOTES - 1))
+#                         midi_note = WHITE_KEYS_MIDI[note_idx]
+#
+#                         velocity_idx = int(norm_vel * (NUM_VELOCITIES - 1.0) + 0.5)
+#                         velocity_idx = max(0, min(velocity_idx, NUM_VELOCITIES - 1))
+#                         velocity = VELOCITY[velocity_idx]
+#
+#                         delta_time_idx = int(norm_dt * (NUM_DELTA_TIME - 1.0) + 0.5)
+#                         delta_time_idx = max(0, min(delta_time_idx, NUM_DELTA_TIME - 1.0))
+#                         delta_time = int(DELTA_TIME[delta_time_idx])
+#
+#                         final_predicted_sequence.append((midi_note, velocity, delta_time))
+#
+#                         final_predicted_sequence = final_predicted_sequence[:96]
+#                         print(f"Final predicted sequence: {final_predicted_sequence}")
+#
+#                         output_path = f"src/all_data/model_generated/my_model/low_res/song-{number}.mid"
+#                         sequence_to_midi(final_predicted_sequence, output_path)
 
 

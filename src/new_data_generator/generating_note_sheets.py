@@ -21,6 +21,8 @@ def preprocess_midi(midi_file, output_midi_file, max_duration=10.0, fixed_bpm=12
 
     new_mid = mido.MidiFile(ticks_per_beat=mid.ticks_per_beat)
 
+    print(fixed_bpm)
+
     tempo = mido.bpm2tempo(fixed_bpm)
 
     for track in mid.tracks:
@@ -80,6 +82,7 @@ def convert_xml_to_sheet(xml_file, output_file, musescore_path="MuseScore4.exe")
 
     try:
         resolution = random.randint(72, 80)
+        # resolution = 200
         print("Resolution:", resolution)
         command = [musescore_path, f"-r {resolution}", xml_file, "-o", output_file]
         print("Converting MusicXML to sheet music using MuseScore...")
@@ -157,13 +160,20 @@ def midi2jpg(midi_folder_path, image_folder_path, mode='midi', instances_count =
                 if mode == 'midi':
                     crop_values = (0, 0, img.width - 10, round(3 * img.height / 5, 0) - 115)
                 else:
-                    crop_y = random.randint(0, 75)
+                    crop_y = random.randint(0, 25)
+                    # crop_y = random.randint(0, 75)
                     crop_x = random.randint(0, 10)
 
                     left = 10 - crop_x
                     right = img.width - crop_x
-                    top = 250 + crop_y
-                    bottom = round(3 * img.height / 5, 0) - 15 + crop_y + 150
+
+
+                    top = 100 + crop_y
+                    bottom = round(3 * img.height / 5, 0) - 15 + crop_y
+
+                    # resolution 200
+                    # top = 300 + crop_y
+                    # bottom = round(3 * img.height / 5, 0) - 15 + crop_y + 200
 
                     crop_values = (left, top, right, bottom)
 
@@ -182,8 +192,8 @@ if __name__ == "__main__":
     # image_folder_path = "data/images"
     # image_folder_path = "my_images/my_midi_images"
     # image_folder_path = "../src/all_data/generated/my_complex_images_test/my_midi_images/my_midi_files"
-    image_folder_path = "../src/all_data/data_to_analyze/hi_res"
+    image_folder_path = "../src/all_data/data_to_analyze/low_res"
 
     process_midi(midi_raw_folder_path, processed_folder_path, max_duration=24.0, fixed_bpm=120, add_track_name=True)
     # midi2jpg(processed_folder_path, image_folder_path)
-    # midi2jpg(xml_raw_folder_path, image_folder_path, 'xml', instances_count=2)
+    # midi2jpg(xml_raw_folder_path, image_folder_path, 'xml', instances_count=4)

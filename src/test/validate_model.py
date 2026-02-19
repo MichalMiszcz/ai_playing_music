@@ -122,7 +122,7 @@ def main():
     test_mode = "midi"
 
     right_hand_tracks_for_validation = ['Piano right', 'Right', 'Track 0', 'Track', 'Voice']
-    model_mode = "scan2notes"
+    model_mode = "my_model"
     res = "low"
     midi_folder_path = f"all_data/model_generated/{model_mode}/{res}_res"
     if model_mode == "scan2notes":
@@ -175,6 +175,9 @@ def main():
         for root, _, files in os.walk(midi_folder_path):
             for i, file in enumerate(files):
                 midi_dir = os.path.join(root, file)
+                print()
+                print(i, midi_dir)
+
                 mid = mido.MidiFile(midi_dir)
 
                 mid_source_dir = os.path.join(midi_source_folder_path, file)

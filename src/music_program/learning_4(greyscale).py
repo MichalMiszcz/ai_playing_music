@@ -24,8 +24,8 @@ image_transform = transforms.Compose([
     transforms.Resize((HEIGHT, WIDTH)),
     transforms.RandomAffine(degrees=0, shear=2),
     transforms.ColorJitter(brightness=0.2, contrast=0.2),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.5], std=[0.5])
+    transforms.ToTensor()
+    # transforms.Normalize(mean=[0.5], std=[0.5])
 ])
 
 def train_model(model, dataloader, val_dataloader, epochs=50, device=device, learning_rate=0.0005, weight_decay=0.00001, max_norm=1.0, milestones=[100, 200, 300], lr_patience=6, es_patience=14):
@@ -118,7 +118,10 @@ if __name__ == "__main__":
     dataloader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=8, pin_memory=True)
     val_dataloader = DataLoader(val_dataset, shuffle=False, num_workers=8, pin_memory=True)
 
-    model = CNNRNNModel(input_channels=1, hidden_dim=256, output_dim=3, max_seq_len=max_seq_len, rnn_layers=4)
+    model = CNNRNNModel(input_channels=1, hidden_dim=256, outp
+
+
+ut_dim=3, max_seq_len=max_seq_len, rnn_layers=4)
     epochs = 300
     learning_data, learning_data_val = train_model(model, dataloader, val_dataloader, epochs=epochs, device=device, learning_rate=0.0001, weight_decay=0.0001, max_norm=1.0)
 
