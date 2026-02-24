@@ -118,10 +118,7 @@ if __name__ == "__main__":
     dataloader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=8, pin_memory=True)
     val_dataloader = DataLoader(val_dataset, shuffle=False, num_workers=8, pin_memory=True)
 
-    model = CNNRNNModel(input_channels=1, hidden_dim=256, outp
-
-
-ut_dim=3, max_seq_len=max_seq_len, rnn_layers=4)
+    model = CNNRNNModel(input_channels=1, hidden_dim=256, output_dim=3, max_seq_len=max_seq_len, rnn_layers=4)
     epochs = 300
     learning_data, learning_data_val = train_model(model, dataloader, val_dataloader, epochs=epochs, device=device, learning_rate=0.0001, weight_decay=0.0001, max_norm=1.0)
 
