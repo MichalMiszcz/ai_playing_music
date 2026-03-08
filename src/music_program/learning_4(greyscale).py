@@ -8,7 +8,7 @@ import mido
 
 from global_variables import *
 
-from src.music_program.cnnrnn_model_4_greyscale import CNNRNNModel
+from src.music_program.cnnrnn_model_5 import CNNRNNModel
 from src.music_program.music_image_dataset_4_greyscale import MusicImageDataset
 
 image_root = "src/all_data/generated/my_complex_images/my_midi_images"
@@ -22,8 +22,8 @@ print(f"Using device: {device}")
 
 image_transform = transforms.Compose([
     transforms.Resize((HEIGHT, WIDTH)),
-    transforms.RandomAffine(degrees=0, shear=2),
-    transforms.ColorJitter(brightness=0.2, contrast=0.2),
+    # transforms.RandomAffine(degrees=0, shear=2),
+    # transforms.ColorJitter(brightness=0.2, contrast=0.2),
     transforms.ToTensor()
     # transforms.Normalize(mean=[0.5], std=[0.5])
 ])
@@ -112,15 +112,15 @@ if __name__ == "__main__":
     left_hand_tracks = ['Piano left', 'Left']
     right_hand_tracks = ['Piano right', 'Right', 'Track 0']
     dataset = MusicImageDataset(image_root, midi_root, left_hand_tracks, right_hand_tracks, image_transform,
-                                max_seq_len=max_seq_len, max_midi_files=10240, modify_image=True)
-    val_dataset = MusicImageDataset(image_root_test, midi_root_test, left_hand_tracks, right_hand_tracks, image_transform, max_seq_len=max_seq_len, max_midi_files=1024, modify_image=True)
+                                max_seq_len=max_seq_len, max_midi_files=128, modify_image=True)
+    val_dataset = MusicImageDataset(image_root_test, midi_root_test, left_hand_tracks, right_hand_tracks, image_transform, max_seq_len=max_seq_len, max_midi_files=16, modify_image=True)
 
-    dataloader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=8, pin_memory=True)
-    val_dataloader = DataLoader(val_dataset, shuffle=False, num_workers=8, pin_memory=True)
+    dataloader = DataLoader(dataset, batch_size=16, shuffle=True, pin_memory=True)
+    val_dataloader = DataLoader(val_dataset, shuffle=False, pin_memory=True)
 
-    model = CNNRNNModel(input_channels=1, hidden_dim=256, output_dim=3, max_seq_len=max_seq_len, rnn_layers=4)
+    model = CNNRNNModel(input_channels=1, hidden_dim=64, output_dim=3, max_seq_len=max_seq_len, rnn_layers=2)
     epochs = 300
-    learning_data, learning_data_val = train_model(model, dataloader, val_dataloader, epochs=epochs, device=device, learning_rate=0.0001, weight_decay=0.0001, max_norm=1.0)
+    learning_data, learning_data_val = train_model(model, dataloader, val_dataloader, epochs=epochs, device=device, learning_rate=0.0001, weight_decay=0.000001, max_norm=1.0)
 
     generate_chart(learning_data, 'Training Loss over Epochs')
     generate_chart(learning_data_val, 'Validation Loss over Epochs')
