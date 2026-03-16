@@ -34,7 +34,7 @@ class ResNet4(ResNet):
         return self._forward_impl(x)
 
 class CNNRNNModel(nn.Module):
-    def __init__(self, input_channels=1, hidden_dim=1024, output_dim=3, rnn_layers=3, max_seq_len=100):
+    def __init__(self, input_channels=1, hidden_dim=1024, output_dim=3, rnn_layers=3, max_seq_len=100, teacher_epochs=2):
         super(CNNRNNModel, self).__init__()
         self.max_seq_len = max_seq_len
         self.cnn = ResNet4()
@@ -42,24 +42,25 @@ class CNNRNNModel(nn.Module):
         self.cnn.maxpool = nn.Identity()
         self.cnn.fc = nn.Linear(64, hidden_dim)
         # self.cnn.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.rnn = nn.LSTM(input_size=output_dim, hidden_size=hidden_dim, num_layers=rnn_layers, dropout=0.33, batch_first=True)
+        self.rnn = nn.LSTM(input_size=output_dim, hidden_size=hidden_dim, num_layers=rnn_layers, dropout=0.5, batch_first=True)
         self.linear = nn.Linear(hidden_dim, output_dim)
         self.proj_h = nn.Linear(hidden_dim, hidden_dim * rnn_layers)
         self.proj_c = nn.Linear(hidden_dim, hidden_dim * rnn_layers)
 
         self.output_dim = output_dim
+        self.teacher_epochs = teacher_epochs
 
-    def forward(self, x, target=None):
+    def forward(self, x, target=None, epoch=None):
         batch_size = x.size(0)
         features = self.cnn(x).view(batch_size, -1)
         h0 = self.proj_h(features).view(batch_size, self.rnn.num_layers, -1).transpose(0, 1).contiguous()
         c0 = self.proj_c(features).view(batch_size, self.rnn.num_layers, -1).transpose(0, 1).contiguous()
 
-        if target is not None:
+        if target is not None and epoch is not None and epoch <= self.teacher_epochs:
             input_seq = torch.cat([torch.zeros(batch_size, 1, self.output_dim).to(x.device), target[:, :-1, :]], dim=1)
             output, _ = self.rnn(input_seq, (h0, c0))
             output = self.linear(output)
-            output = torch.sigmoid(output)
+            # output = torch.sigmoid(output)
             return output
         else:
             output_seq = []
@@ -68,7 +69,7 @@ class CNNRNNModel(nn.Module):
             for _ in range(self.max_seq_len):
                 output, hidden = self.rnn(input_note, hidden)
                 output = self.linear(output)
-                output = torch.sigmoid(output)
+                # output = torch.sigmoid(output)
                 output_seq.append(output)
                 input_note = output
             return torch.cat(output_seq, dim=1)

@@ -8,18 +8,18 @@ import mido
 from src.music_program.cnnrnn_model_5 import CNNRNNModel
 from src.music_program.global_variables import *
 
-model_path = "src/model_best_mse.pth"
+model_path = "src/model_best_l1_5.pth"
 # image_path = "src/all_data/generated/my_images_test/my_midi_images/my_midi_files/kotek/kotek-1.png"
-# image_path = "src/all_data/generated/my_complex_images/my_midi_images/my_midi_files/song_1/song_1-1.png"
-image_path = "src/kotek/kotek-1.png"
+image_path = "src/all_data/generated/my_complex_images/my_midi_images/my_midi_files/song_1/song_1-1.png"
+# image_path = "src/kotek/kotek-1.png"
 # num = 1
 # image_path = f"src/all_data/data_to_analyze/hi_res/song_{num}/song_{num}-1.png"
 # image_path = "src/kotek_hr.png"
 # image_path = "src/all_data/data_to_analyze/hi_res/song_7/song_7-1.png"
 # output_path = f"src/output_midi.mid"
 
-models_hidden_dim = 32
-models_rnn_layers = 2
+models_hidden_dim = 256
+models_rnn_layers = 3
 
 
 def sequence_to_midi(sequence, output_midi_path):
@@ -68,7 +68,7 @@ model.eval()
 image_transform = transforms.Compose([
     transforms.Resize((HEIGHT, WIDTH)),
     transforms.ToTensor(),
-    transforms.Normalize(mean=[0.5], std=[0.5])
+    # transforms.Normalize(mean=[0.5], std=[0.5])
 ])
 
 image = Image.open(image_path).convert('L')

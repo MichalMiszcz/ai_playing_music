@@ -14,7 +14,7 @@ velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
 delta_time_to_index = {midi_num: i for i, midi_num in enumerate(DELTA_TIME)}
 
 class MusicImageDataset(Dataset):
-    def __init__(self, image_root, midi_root, left_hand_tracks=["Piano left"], right_hand_tracks=["Piano right"], image_transform=None, max_seq_len=100, max_midi_files=100, modify_image=False, aug_prob = 0.5):
+    def __init__(self, image_root, midi_root, left_hand_tracks=["Piano left"], right_hand_tracks=["Piano right"], image_transform=None, max_seq_len=100, max_midi_files=100, modify_image=False, aug_prob = 0.0):
         self.image_root = image_root
         self.midi_root = midi_root
         self.left_hand_tracks = left_hand_tracks
@@ -92,9 +92,10 @@ class MusicImageDataset(Dataset):
         midi_key = f"{composer}/{piece}"
 
         image = Image.open(img_path).convert('L')
-        apply_augmentation = random.randrange(0, 1)
-        if apply_augmentation <= self.aug_prob:
-            if self.modify_image:
+
+        if self.modify_image:
+            apply_augmentation = random.randrange(0, 1)
+            if apply_augmentation <= self.aug_prob:
                 img_array = np.array(image)
                 # angle = random.uniform(-2, 2)
                 angle = 0

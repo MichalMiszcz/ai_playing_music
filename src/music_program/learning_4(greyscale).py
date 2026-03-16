@@ -1,6 +1,7 @@
 import torch
 import torch.optim as optim
 from matplotlib import pyplot as plt
+from torch import nn
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from PIL import Image
@@ -28,12 +29,21 @@ image_transform = transforms.Compose([
     # transforms.Normalize(mean=[0.5], std=[0.5])
 ])
 
+class LpLoss(nn.Module):
+    def __init__(self, p=3.0):
+        super(LpLoss, self).__init__()
+        self.p = p
+
+    def forward(self, y_pred, y_true):
+        loss = torch.mean(torch.abs(y_pred - y_true) ** self.p)
+        return loss
+
 def train_model(model, dataloader, val_dataloader, epochs=50, device=device, learning_rate=0.0005, weight_decay=0.00001, max_norm=1.0, milestones=[100, 200, 300], lr_patience=6, es_patience=14):
     learning_data = []
     learning_data_val = []
 
     model = model.to(device)
-    criterion = torch.nn.HuberLoss(delta=1.0)
+    criterion = LpLoss(3) #torch.nn.HuberLoss(delta=1.0)
 
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.25, patience=lr_patience)
@@ -53,7 +63,11 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
             midi_batch = midi_batch.to(device, non_blocking=True)
 
             optimizer.zero_grad()
-            output = model(images, midi_batch)
+            output = model(images, midi_batch, epoch)
+            if i == 100:
+                print(output)
+                print()
+                print(midi_batch)
             loss = criterion(output, midi_batch)
             loss.backward()
 
@@ -83,7 +97,7 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             patience_counter = 0
-            torch.save(model.state_dict(), '/content/drive/MyDrive/modele_ai/model_best.pth')
+            # torch.save(model.state_dict(), '/content/drive/MyDrive/modele_ai/model_best.pth')
             print("Model saved as 'model_best.pth'")
         else:
             patience_counter += 1
@@ -115,12 +129,12 @@ if __name__ == "__main__":
                                 max_seq_len=max_seq_len, max_midi_files=128, modify_image=True)
     val_dataset = MusicImageDataset(image_root_test, midi_root_test, left_hand_tracks, right_hand_tracks, image_transform, max_seq_len=max_seq_len, max_midi_files=16, modify_image=True)
 
-    dataloader = DataLoader(dataset, batch_size=16, shuffle=True, pin_memory=True)
+    dataloader = DataLoader(dataset, batch_size=1, shuffle=True, pin_memory=True)
     val_dataloader = DataLoader(val_dataset, shuffle=False, pin_memory=True)
 
     model = CNNRNNModel(input_channels=1, hidden_dim=64, output_dim=3, max_seq_len=max_seq_len, rnn_layers=2)
     epochs = 300
-    learning_data, learning_data_val = train_model(model, dataloader, val_dataloader, epochs=epochs, device=device, learning_rate=0.0001, weight_decay=0.000001, max_norm=1.0)
+    learning_data, learning_data_val = train_model(model, dataloader, val_dataloader, epochs=epochs, device=device, learning_rate=0.001, weight_decay=0.0001, max_norm=1.0)
 
     generate_chart(learning_data, 'Training Loss over Epochs')
     generate_chart(learning_data_val, 'Validation Loss over Epochs')

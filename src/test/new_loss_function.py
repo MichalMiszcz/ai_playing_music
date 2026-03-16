@@ -47,7 +47,7 @@ def prepare_time_series(seq, mode="on"):
 
 
 
-def count_error(generated_seq, source_seq):
+def DTW_based_loss(generated_seq, source_seq):
     generated_seq = change_delta_time_to_time(generated_seq)
     source_seq = change_delta_time_to_time(source_seq)
 
