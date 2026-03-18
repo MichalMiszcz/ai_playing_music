@@ -64,10 +64,6 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
 
             optimizer.zero_grad()
             output = model(images, midi_batch, epoch)
-            if i == 100:
-                print(output)
-                print()
-                print(midi_batch)
             loss = criterion(output, midi_batch)
             loss.backward()
 
@@ -132,7 +128,7 @@ if __name__ == "__main__":
     dataloader = DataLoader(dataset, batch_size=1, shuffle=True, pin_memory=True)
     val_dataloader = DataLoader(val_dataset, shuffle=False, pin_memory=True)
 
-    model = CNNRNNModel(input_channels=1, hidden_dim=64, output_dim=3, max_seq_len=max_seq_len, rnn_layers=2)
+    model = CNNRNNModel(input_channels=1, hidden_dim=32, output_dim=3, max_seq_len=max_seq_len, rnn_layers=2, teacher_epochs=1)
     epochs = 300
     learning_data, learning_data_val = train_model(model, dataloader, val_dataloader, epochs=epochs, device=device, learning_rate=0.001, weight_decay=0.0001, max_norm=1.0)
 

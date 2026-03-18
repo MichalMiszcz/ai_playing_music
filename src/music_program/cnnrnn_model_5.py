@@ -38,7 +38,8 @@ class CNNRNNModel(nn.Module):
         super(CNNRNNModel, self).__init__()
         self.max_seq_len = max_seq_len
         self.cnn = ResNet4()
-        self.cnn.conv1 = nn.Conv2d(input_channels, 64, kernel_size=3, stride=2, padding=1, bias=False)
+        self.cnn.conv1 = nn.Conv2d(input_channels, 64, kernel_size=32, stride=16, padding=1, bias=False)
+        # self.cnn.conv1 = nn.Conv2d(input_channels, 64, kernel_size=3, stride=2, padding=1, bias=False)
         self.cnn.maxpool = nn.Identity()
         self.cnn.fc = nn.Linear(64, hidden_dim)
         # self.cnn.avgpool = nn.AdaptiveAvgPool2d((1, 1))
@@ -56,11 +57,11 @@ class CNNRNNModel(nn.Module):
         h0 = self.proj_h(features).view(batch_size, self.rnn.num_layers, -1).transpose(0, 1).contiguous()
         c0 = self.proj_c(features).view(batch_size, self.rnn.num_layers, -1).transpose(0, 1).contiguous()
 
-        if target is not None and epoch is not None and epoch <= self.teacher_epochs:
+        if target is not None and epoch is not None and epoch < self.teacher_epochs:
             input_seq = torch.cat([torch.zeros(batch_size, 1, self.output_dim).to(x.device), target[:, :-1, :]], dim=1)
             output, _ = self.rnn(input_seq, (h0, c0))
             output = self.linear(output)
-            # output = torch.sigmoid(output)
+            output = torch.sigmoid(output)
             return output
         else:
             output_seq = []
@@ -69,7 +70,7 @@ class CNNRNNModel(nn.Module):
             for _ in range(self.max_seq_len):
                 output, hidden = self.rnn(input_note, hidden)
                 output = self.linear(output)
-                # output = torch.sigmoid(output)
+                output = torch.sigmoid(output)
                 output_seq.append(output)
                 input_note = output
             return torch.cat(output_seq, dim=1)
