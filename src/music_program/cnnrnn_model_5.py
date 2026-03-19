@@ -25,8 +25,11 @@ class ResNet4(ResNet):
         # x = self.layer4(x)
 
         x = self.avgpool(x)
+        print(x.shape)
         x = torch.flatten(x, 1)
+        print(x.shape)
         x = self.fc(x)
+        print(x.shape)
 
         return x
 
@@ -53,7 +56,10 @@ class CNNRNNModel(nn.Module):
 
     def forward(self, x, target=None, epoch=None):
         batch_size = x.size(0)
+        print(x.shape)
         features = self.cnn(x).view(batch_size, -1)
+        print(features.shape)
+        print()
         h0 = self.proj_h(features).view(batch_size, self.rnn.num_layers, -1).transpose(0, 1).contiguous()
         c0 = self.proj_c(features).view(batch_size, self.rnn.num_layers, -1).transpose(0, 1).contiguous()
 
