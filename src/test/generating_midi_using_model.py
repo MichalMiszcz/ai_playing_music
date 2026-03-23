@@ -5,21 +5,21 @@ from torchvision import transforms
 from PIL import Image
 import mido
 
-from src.music_program.cnnrnn_model_5 import CNNRNNModel
+from src.music_program.cnnrnn_model_4_5 import CNNRNNModel
 from src.music_program.global_variables import *
 
-model_path = "src/model_best_mse_no_teacher.pth"
+model_path = "src/model_best_23_03.pth"
 # image_path = "src/all_data/generated/my_images_test/my_midi_images/my_midi_files/kotek/kotek-1.png"
-image_path = "src/all_data/generated/my_complex_images/my_midi_images/my_midi_files/song_1/song_1-1.png"
+# image_path = "src/all_data/generated/my_complex_images/my_midi_images/my_midi_files/song_1/song_1-1.png"
 # image_path = "src/kotek/kotek-1.png"
 # num = 1
 # image_path = f"src/all_data/data_to_analyze/hi_res/song_{num}/song_{num}-1.png"
-# image_path = "src/kotek_hr.png"
+image_path = "src/kotek_hr.png"
 # image_path = "src/all_data/data_to_analyze/hi_res/song_7/song_7-1.png"
 # output_path = f"src/output_midi.mid"
 
-models_hidden_dim = 64
-models_rnn_layers = 3
+models_hidden_dim = 256
+models_rnn_layers = 5
 
 
 def sequence_to_midi(sequence, output_midi_path):

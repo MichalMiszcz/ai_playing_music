@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import pandas as pd
 
-from src.music_program.cnnrnn_model_4_greyscale import CNNRNNModel
+from src.music_program.cnnrnn_model_4_5 import CNNRNNModel
 from src.music_program.global_variables import *
 from src.music_program.music_image_dataset_4_greyscale import MusicImageDataset
 from src.test.accuracy import *
@@ -17,7 +17,7 @@ note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
 velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
 delta_time_to_index = {midi_num: i for i, midi_num in enumerate(DELTA_TIME)}
 
-model_path = "model_best.pth"
+model_path = "model_best_23_03.pth"
 image_root_test = "all_data/generated/my_complex_images/my_midi_images"
 midi_root_test = "all_data/generated/generated_complex_midi_processed"
 
@@ -45,7 +45,7 @@ val_dataloader = DataLoader(val_dataset, shuffle=False)
 
 # Loading model
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = CNNRNNModel(input_channels=1, hidden_dim=32, output_dim=3, rnn_layers=2, max_seq_len=max_seq_len)
+model = CNNRNNModel(input_channels=1, hidden_dim=256, output_dim=3, rnn_layers=5, max_seq_len=max_seq_len)
 model.to(device)
 
 model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
