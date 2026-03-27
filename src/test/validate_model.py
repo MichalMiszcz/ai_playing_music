@@ -17,9 +17,9 @@ note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
 velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
 delta_time_to_index = {midi_num: i for i, midi_num in enumerate(DELTA_TIME)}
 
-model_path = "model_best_23_03.pth"
-image_root_test = "all_data/generated/my_complex_images/my_midi_images"
-midi_root_test = "all_data/generated/generated_complex_midi_processed"
+model_path = "model_best_24_03_big_batch_mse.pth"
+image_root_test = "all_data/generated/my_complex_images_test/my_midi_images"
+midi_root_test = "all_data/generated/generated_complex_midi_processed_test"
 
 midi_columns = ['midi_note', 'velocity', 'delta_time']
 
@@ -119,7 +119,7 @@ def calculate_measures(predicted_sequence, source_sequence):
 
 def main():
     df_final_results = pd.DataFrame()
-    test_mode = "midi"
+    test_mode = "model"
 
     right_hand_tracks_for_validation = ['Piano right', 'Right', 'Track 0', 'Track', 'Voice']
     model_mode = "my_model"

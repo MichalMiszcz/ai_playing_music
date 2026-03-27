@@ -1,3 +1,10 @@
+"""
+Implementacja modelu obraz-sekwencja o jednowymiarowym wyjściu.
+
+Wyjściowa sekwencja wygląda w następujący sposób:
+[64, 64, 65, 64, 64, 64, 64, 62, 62, 62, 62, 62, 62, ... , 60]
+"""
+
 import random
 
 import torch

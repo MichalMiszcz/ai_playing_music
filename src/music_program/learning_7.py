@@ -1,3 +1,10 @@
+"""
+Implementacja uczenia modelu przy jednowymiarowym wyjściu.
+
+Wyjściowa sekwencja wygląda w następujący sposób:
+[64, 64, 65, 64, 64, 64, 64, 62, 62, 62, 62, 62, 62, ... , 60]
+"""
+
 import torch
 import torch.optim as optim
 from matplotlib import pyplot as plt
@@ -9,8 +16,8 @@ import mido
 
 from global_variables import *
 
-from src.music_program.cnnrnn_model_6 import CNNRNNModel
-from src.music_program.music_image_dataset_4_greyscale import MusicImageDataset
+from src.music_program.cnnrnn_model_7 import CNNRNNModel
+from src.music_program.music_image_dataset_7 import MusicImageDataset
 
 max_seq_len = 96
 
