@@ -53,6 +53,7 @@ def time_series_to_midi_seq(time_series):
 if "__main__" == __name__:
     midi_seq = [(64, 90, 0), (64, 0, 10080), (65, 90, 0), (65, 0, 5040), (64, 90, 0), (64, 0, 20160), (62, 90, 0), (62, 0, 30240), (62, 90, 0), (62, 0, 5040), (60, 0, 0), (60, 0, 0), (60, 0, 0), (60, 0, 0)]
 
+    # Przygotowanie do uczenia
     time_series = create_time_series(midi_seq)
     print(time_series)
 
@@ -62,6 +63,7 @@ if "__main__" == __name__:
     ]
     print(normalized_seq)
 
+    # Odczytywanie zakodowanych nut
     new_time_series = [
         int(round(norm_note * (NUM_NOTES - 1.0)))
         for norm_note in normalized_seq

@@ -37,14 +37,6 @@ class CNNRNNModel(nn.Module):
         features = self.fc(features)
         features = features.view(batch_size, -1)
 
-        context = features.unsqueeze(1)
-        print(context)
-        print(context.shape)
-
-        context = features.unsqueeze(1).expand(-1, 96, -1)
-        print(context)
-        print(context.shape)
-
         h0 = self.proj_h(features).view(batch_size, self.rnn.num_layers, -1).transpose(0, 1).contiguous()
         c0 = self.proj_c(features).view(batch_size, self.rnn.num_layers, -1).transpose(0, 1).contiguous()
 

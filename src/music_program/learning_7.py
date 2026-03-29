@@ -19,12 +19,12 @@ from global_variables import *
 from src.music_program.cnnrnn_model_7 import CNNRNNModel
 from src.music_program.music_image_dataset_7 import MusicImageDataset
 
-max_seq_len = 96
+max_seq_len = 96 * (NUM_DELTA_TIME - 1)
 
-max_midi_files=1024
-max_midi_files_test=128
+max_midi_files=2048
+max_midi_files_test=16
 batch_size=16
-hidden_dim=32
+hidden_dim=64
 rnn_layers=2
 
 epochs=200
@@ -81,7 +81,7 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
 
         # epochs_ratio = epoch/epochs
         if epoch > teacher_epochs:
-            teacher_ratio = max(0.0, 0.5 - (epoch / epochs))
+            teacher_ratio = max(0.0, 0.75 - (epoch / epochs))
         else:
             teacher_ratio = 1.0
 
@@ -92,6 +92,10 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
             optimizer.zero_grad()
             # output = model(images, midi_batch, teacher_ratio)
             output = model(images, midi_batch, teacher_ratio)
+
+            # print(output)
+            # print(midi_batch)
+
             loss = criterion(output, midi_batch)
             loss.backward()
 
@@ -112,6 +116,7 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
             for images, midi_batch in val_dataloader:
                 images, midi_batch = images.to(device, non_blocking=True), midi_batch.to(device, non_blocking=True)
                 outputs = model(images)
+
                 val_loss += criterion(outputs, midi_batch).item()
         val_loss /= len(val_dataloader)
 
@@ -162,7 +167,7 @@ if __name__ == "__main__":
     # dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     # val_dataloader = DataLoader(val_dataset, shuffle=False)
 
-    model = CNNRNNModel(input_channels=1, hidden_dim=hidden_dim, output_dim=3, max_seq_len=max_seq_len, rnn_layers=rnn_layers)
+    model = CNNRNNModel(input_channels=1, hidden_dim=hidden_dim, output_dim=1, max_seq_len=max_seq_len, rnn_layers=rnn_layers)
     epochs = epochs
     learning_data, learning_data_val = train_model(model, dataloader, val_dataloader, epochs=epochs, device=device, learning_rate=learning_rate, weight_decay=weight_decay, lr_patience=3, es_patience=13, teacher_epochs=3)
 

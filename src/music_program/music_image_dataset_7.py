@@ -115,38 +115,42 @@ class MusicImageDataset(Dataset):
             image = self.image_transform(image)
 
         midi_seq = self.midi_features.get(midi_key, [(0, 0, 0)] * self.max_seq_len)
-        midi_seq = create_time_series(midi_seq)
-        print(midi_seq)
+        midi_seq = self.create_time_series(midi_seq)
+        # print('Midi seq:', midi_seq)
 
         normalized_seq = [
             note_idx / (NUM_NOTES - 1.0)
             for note_idx in midi_seq
         ]
+        # print('Normalized seq:', normalized_seq)
+
         midi_tensor = torch.tensor(normalized_seq, dtype=torch.float32)
+        # print('Midi tensor: ', midi_tensor)
 
         return image, midi_tensor
 
-def create_time_series(midi_seq):
-    step = DELTA_TIME[1]
-    time_series = []
+    def create_time_series(self, midi_seq):
+        time_series = []
 
-    current_note = None
+        current_note = None
 
-    for row in midi_seq:
-        note = row[0]
-        velocity = row[1]
-        delta_time = row[2]
+        for row in midi_seq:
+            note = row[0]
+            velocity = row[1]
+            delta_time = row[2]
 
-        if velocity > 0:
-            current_note = note
+            if velocity > 0:
+                current_note = note
+            else:
+                if current_note is not None:
+                    time_series.extend([current_note] * delta_time)
+                    time_series.extend([STOP_SIGN])
+                    current_note = None
 
-        else:
-            if current_note is not None:
-                steps = int(delta_time // step)
-                time_series.extend([current_note] * steps)
-                current_note = None
+        if len(time_series) < self.max_seq_len:
+            time_series.extend([0] * (self.max_seq_len - len(time_series)))
 
-    return time_series
+        return time_series
 
 # def modify_image_opencv(image_array, angle, x_shift, y_shift):
 #     (h, w) = image_array.shape[:2]
