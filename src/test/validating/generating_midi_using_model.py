@@ -1,12 +1,10 @@
-import os
-
 import torch
 from torchvision import transforms
 from PIL import Image
 import mido
 
-from src.music_program.cnnrnn_model_4_5 import CNNRNNModel
-from src.music_program.global_variables import *
+from src.music_program.model.cnnrnn_model_4_5 import CNNRNNModel
+from src.music_program.utils.global_variables import *
 
 model_path = "src/model_best_24_03_big_batch_mse.pth"
 # image_path = "src/all_data/generated/my_images_test/my_midi_images/my_midi_files/kotek/kotek-1.png"

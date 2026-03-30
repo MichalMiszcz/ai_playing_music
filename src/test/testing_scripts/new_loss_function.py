@@ -1,4 +1,4 @@
-from src.music_program.global_variables import *
+from src.music_program.utils.global_variables import *
 
 from dtaidistance import dtw
 

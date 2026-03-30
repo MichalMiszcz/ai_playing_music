@@ -3,23 +3,27 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import pandas as pd
 
-from src.music_program.cnnrnn_model_4_greyscale import CNNRNNModel
-from src.music_program.global_variables import *
-from src.music_program.music_image_dataset_4_greyscale import MusicImageDataset
-from src.test.accuracy import *
+from src.music_program.model.cnnrnn_model_4_greyscale import CNNRNNModel
+from src.music_program.utils.global_variables import *
+from src.music_program.dataset.music_image_dataset_4_greyscale import MusicImageDataset
+from src.test.validating.accuracy import *
 
-model_path = "model_multi_notes_v4.pth"
-image_root_test = "all_data/generated/my_images_test/my_midi_images"
-midi_root_test = "all_data/generated/generated_songs_processed_test"
+model_path = "model_multi_lines_v5.pth"
+image_root_test = "all_data/generated/my_complex_images/my_midi_images"
+midi_root_test = "all_data/generated/generated_complex_midi_processed"
 
-max_seq_len = 32
+# model_path = "model_new_bigeye.pth"
+# image_root_test = "all_data/generated/my_images_test_q/my_midi_images"
+# midi_root_test = "all_data/generated/generated_songs_processed_test_q"
+
+max_seq_len = 96
 max_midi_files = 128
 left_hand_tracks = ['Piano left', 'Left']
 right_hand_tracks = ['Piano right', 'Right', 'Track 0']
 
 
 image_transform = transforms.Compose([
-    # transforms.Resize((SIZE_X, SIZE_Y)), # Resizing image
+    transforms.Resize((HEIGHT, WIDTH)),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.5], std=[0.5])
 ])
@@ -30,7 +34,7 @@ val_dataloader = DataLoader(val_dataset, shuffle=False)
 
 # Loading model
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = CNNRNNModel(input_channels=1, hidden_dim=512, output_dim=3, rnn_layers=5)
+model = CNNRNNModel(input_channels=1, hidden_dim=712, output_dim=3, rnn_layers=6)
 model.to(device)
 
 model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
@@ -44,12 +48,17 @@ def from_raw_to_midi(sequence):
         note_idx = max(0, min(note_idx, NUM_NOTES - 1))
         midi_note = WHITE_KEYS_MIDI[note_idx]
 
-        velocity = int(norm_vel * 127.0 + 0.5)
-        delta_time = int(norm_dt * 1008 + 0.5)
+        velocity_idx = int(norm_vel * (NUM_VELOCITIES - 1.0) + 0.5)
+        velocity_idx = max(0, min(velocity_idx, NUM_VELOCITIES - 1))
+        velocity = VELOCITY[velocity_idx]
+
+        delta_time_idx = int(norm_dt * (NUM_DELTA_TIME - 1.0) + 0.5)
+        delta_time_idx = max(0, min(delta_time_idx, NUM_DELTA_TIME - 1.0))
+        delta_time = DELTA_TIME[delta_time_idx]
 
         final_predicted_sequence.append((midi_note, velocity, delta_time))
 
-    final_predicted_sequence = final_predicted_sequence[:32]
+    final_predicted_sequence = final_predicted_sequence[:96]
     return final_predicted_sequence
 
 def store_stats(predicted, source, max_len, stats_name):
@@ -97,7 +106,7 @@ def main():
 
             output = model(images, midi_batch)
             predicted_sequence = output[0].cpu().detach().numpy().tolist()
-            predicted_sequence = predicted_sequence[:32]
+            predicted_sequence = predicted_sequence[:96]
 
             midi_batch = midi_batch.cpu()
             midi_batch = midi_batch.tolist()

@@ -4,13 +4,11 @@ from matplotlib import pyplot as plt
 from torch import nn
 from torch.utils.data import DataLoader
 from torchvision import transforms
-from PIL import Image
-import mido
 
-from global_variables import *
+from src.music_program.utils.global_variables import *
 
-from src.music_program.cnnrnn_model_6 import CNNRNNModel
-from src.music_program.music_image_dataset_4_greyscale import MusicImageDataset
+from src.music_program.model.cnnrnn_model_6 import CNNRNNModel
+from src.music_program.dataset.music_image_dataset_4_greyscale import MusicImageDataset
 
 max_seq_len = 96
 

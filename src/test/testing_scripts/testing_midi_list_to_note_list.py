@@ -1,4 +1,4 @@
-from src.music_program.global_variables import DELTA_TIME, NUM_NOTES, WHITE_KEYS_MIDI
+from src.music_program.utils.global_variables import DELTA_TIME, NUM_NOTES, WHITE_KEYS_MIDI
 
 note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
 STOP_SIGN = -(NUM_NOTES - 1)

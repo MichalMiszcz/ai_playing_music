@@ -9,10 +9,8 @@ import random
 
 import torch
 import torch.nn as nn
-from torchvision import models
 
-from src.music_program.global_variables import NUM_NOTES
-from src.music_program.resnet_encoder import Encoder, BasicBlockEnc
+from src.music_program.utils.resnet_encoder import Encoder, BasicBlockEnc
 
 
 class CNNRNNModel(nn.Module):

@@ -1,7 +1,7 @@
 import music21
 import random
 import os
-from src.music_program.global_variables import WHITE_KEYS
+from src.music_program.utils.global_variables import WHITE_KEYS
 from src.utils import instances
 
 NUM_SONGS = 1024

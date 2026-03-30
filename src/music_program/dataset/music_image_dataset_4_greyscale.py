@@ -1,8 +1,3 @@
-"""
-Implementacja klasy datasetu podającego midi w formacie wyglądającym w następujący sposób:
-[64, 64, 65, 64, 64, 64, 64, 62, 62, 62, 62, 62, 62, ... , 60]
-"""
-
 import numpy as np
 import cv2
 import torch
@@ -12,7 +7,7 @@ from PIL import Image
 import os
 import random
 import mido
-from src.music_program.global_variables import *
+from src.music_program.utils.global_variables import *
 
 note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
 velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
@@ -98,71 +93,45 @@ class MusicImageDataset(Dataset):
 
         image = Image.open(img_path).convert('L')
 
-        # if self.modify_image:
-        #     apply_augmentation = random.randrange(0, 1)
-        #     if apply_augmentation <= self.aug_prob:
-        #         img_array = np.array(image)
-        #         # angle = random.uniform(-2, 2)
-        #         angle = 0
-        #         x_shift = random.randint(-10, 10)
-        #         y_shift = random.randint(0, 30)
-        #
-        #         rotated_array = modify_image_opencv(img_array, angle, x_shift, y_shift)
-        #
-        #         image = Image.fromarray(rotated_array)
+        if self.modify_image:
+            apply_augmentation = random.randrange(0, 1)
+            if apply_augmentation <= self.aug_prob:
+                img_array = np.array(image)
+                # angle = random.uniform(-2, 2)
+                angle = 0
+                x_shift = random.randint(-10, 10)
+                y_shift = random.randint(0, 30)
+
+                rotated_array = modify_image_opencv(img_array, angle, x_shift, y_shift)
+
+                image = Image.fromarray(rotated_array)
 
         if self.image_transform:
             image = self.image_transform(image)
 
         midi_seq = self.midi_features.get(midi_key, [(0, 0, 0)] * self.max_seq_len)
-        midi_seq = self.create_time_series(midi_seq)
-        # print('Midi seq:', midi_seq)
 
         normalized_seq = [
-            note_idx / (NUM_NOTES - 1.0)
-            for note_idx in midi_seq
+            (note_idx / (NUM_NOTES - 1.0),
+             velocity_idx / (NUM_VELOCITIES - 1.0),
+             delta_time_idx / (NUM_DELTA_TIME - 1.0))
+            for note_idx, velocity_idx, delta_time_idx in midi_seq
         ]
-        # print('Normalized seq:', normalized_seq)
-
         midi_tensor = torch.tensor(normalized_seq, dtype=torch.float32)
-        # print('Midi tensor: ', midi_tensor)
 
         return image, midi_tensor
 
-    def create_time_series(self, midi_seq):
-        time_series = []
+def modify_image_opencv(image_array, angle, x_shift, y_shift):
+    (h, w) = image_array.shape[:2]
+    center = (w // 2, h // 2)
 
-        current_note = None
+    matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
 
-        for row in midi_seq:
-            note = row[0]
-            velocity = row[1]
-            delta_time = row[2]
+    matrix[0, 2] += x_shift
+    matrix[1, 2] += y_shift
 
-            if velocity > 0:
-                current_note = note
-            else:
-                if current_note is not None:
-                    time_series.extend([current_note] * delta_time)
-                    time_series.extend([STOP_SIGN])
-                    current_note = None
-
-        if len(time_series) < self.max_seq_len:
-            time_series.extend([0] * (self.max_seq_len - len(time_series)))
-
-        return time_series
-
-# def modify_image_opencv(image_array, angle, x_shift, y_shift):
-#     (h, w) = image_array.shape[:2]
-#     center = (w // 2, h // 2)
-#
-#     matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
-#
-#     matrix[0, 2] += x_shift
-#     matrix[1, 2] += y_shift
-#
-#     rotated = cv2.warpAffine(image_array, matrix, (w, h), borderValue=(255, 255, 255))
-#     return rotated
+    rotated = cv2.warpAffine(image_array, matrix, (w, h), borderValue=(255, 255, 255))
+    return rotated
 
 def extract_notes_from_midi(midi_path, left_hand_tracks, right_hand_tracks):
     try:

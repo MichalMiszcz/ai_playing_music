@@ -2,16 +2,14 @@ import os
 
 import mido
 import torch
-from sympy.codegen.cnodes import sizeof
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import pandas as pd
 
-from src.music_program.cnnrnn_model_4_5 import CNNRNNModel
-from src.music_program.global_variables import *
-from src.music_program.music_image_dataset_4_greyscale import MusicImageDataset
-from src.test.accuracy import *
-from src.music_program.global_variables import *
+from src.music_program.model.cnnrnn_model_4_5 import CNNRNNModel
+from src.music_program.dataset.music_image_dataset_4_greyscale import MusicImageDataset
+from src.test.validating.accuracy import *
+from src.music_program.utils.global_variables import *
 
 note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
 velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
