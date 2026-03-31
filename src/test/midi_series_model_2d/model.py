@@ -13,8 +13,6 @@ import torch.nn as nn
 
 class ModelLSTM(nn.Module):
     def __init__(self, hidden_dim=64, input_dim=3, output_dim=1, rnn_layers=2, max_seq_len=90, max_series_len=450) -> None:
-        print(max_series_len)
-
         super(ModelLSTM, self).__init__()
         self.max_seq_len = max_seq_len
         self.max_series_len = max_series_len
@@ -40,10 +38,6 @@ class ModelLSTM(nn.Module):
         # nowe generowanie sekwencji
         use_teacher_learning = random.random()
         if target is not None and teacher_ratio is not None and use_teacher_learning <= teacher_ratio:
-            print(target.shape)
-            target = target.view(target.size(0), target.size(1), 1)
-            print(target.shape)
-
             input_seq = torch.cat([torch.zeros(batch_size, 1, self.output_dim).to(x.device), target[:, :-1, :]], dim=1)
 
             # dodane
@@ -58,8 +52,6 @@ class ModelLSTM(nn.Module):
 
             # output = torch.sigmoid(output)
             output = torch.tanh(output)
-
-            output = output.view(output.size(0), output.size(1))
             return output
         else:
             output_seq = []
@@ -85,6 +77,5 @@ class ModelLSTM(nn.Module):
                 input_note = output
 
             output = torch.cat(output_seq, dim=1)
-            output = output.view(output.size(0), output.size(1))
 
             return output

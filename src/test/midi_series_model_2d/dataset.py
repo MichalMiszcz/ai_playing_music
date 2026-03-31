@@ -69,9 +69,11 @@ class MusicSequenceDataset(Dataset):
 
                 # self.midi_time_seq[midi_key] = self.create_time_series(midi_seq)
                 self.midi_time_seq[midi_key] = [
-                    note_idx / (NUM_NOTES - 1.0)
-                    for note_idx in self.create_time_series(midi_seq)
+                    (note_idx / (NUM_NOTES - 1.0),
+                    delta_time_idx / (NUM_DELTA_TIME - 1.0))
+                    for note_idx, delta_time_idx in self.create_time_series(midi_seq)
                 ]
+
             except Exception as e:
                 print(f"Error processing MIDI {midi_file}: {e}")
                 records_to_remove.append((folder, author, midi_file))
@@ -118,7 +120,6 @@ class MusicSequenceDataset(Dataset):
 
     def create_time_series(self, midi_seq):
         time_series = []
-
         current_note = None
 
         for row in midi_seq:
@@ -130,12 +131,11 @@ class MusicSequenceDataset(Dataset):
                 current_note = note
             else:
                 if current_note is not None:
-                    time_series.extend([current_note] * delta_time)
-                    time_series.extend([STOP_SIGN])
+                    time_series.append((note, delta_time))
                     current_note = None
 
         if len(time_series) < self.max_series_len:
-            time_series.extend([0] * (self.max_series_len - len(time_series)))
+            time_series.extend([(0, 0)] * (self.max_series_len - len(time_series)))
 
         return time_series
 

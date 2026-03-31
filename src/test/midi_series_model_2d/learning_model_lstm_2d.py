@@ -4,8 +4,6 @@ Implementacja uczenia modelu przy jednowymiarowym wyjściu.
 Wyjściowa sekwencja wygląda w następujący sposób:
 [64, 64, 65, 64, 64, 64, 64, 62, 62, 62, 62, 62, 62, ... , 60]
 """
-import time
-
 import torch
 import torch.optim as optim
 from matplotlib import pyplot as plt
@@ -15,19 +13,19 @@ from torchvision import transforms
 
 from src.music_program.utils.global_variables import *
 
-from src.test.midi_series_model.model import ModelLSTM
-from src.test.midi_series_model.dataset import MusicSequenceDataset
+from src.test.midi_series_model_2d.model import ModelLSTM
+from src.test.midi_series_model_2d.dataset import MusicSequenceDataset
 
 max_seq_len = 96
-max_series_len = 96 * (NUM_DELTA_TIME - 1)
+max_series_len = int(max_seq_len / 2)
 
-max_midi_files=256
-max_midi_files_test=8
-batch_size=16
-hidden_dim=4
-rnn_layers=1
+max_midi_files=4096
+max_midi_files_test=512
+batch_size=32
+hidden_dim=128
+rnn_layers=2
 
-epochs=10
+epochs=100
 learning_rate = 0.001
 weight_decay = 0.00001
 max_norm=1.0
@@ -76,8 +74,6 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
     patience_counter = 0
 
     for epoch in range(epochs):
-        start = time.time()
-
         model.train()
         total_loss = 0
 
@@ -101,13 +97,8 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
             optimizer.step()
             total_loss += loss.item()
 
-        end = time.time()
-        delta_time = end - start
-        print("Learning time: ", delta_time)
-
         avg_loss = total_loss / len(dataloader)
 
-        start = time.time()
         model.eval()
         val_loss = 0
         with torch.no_grad():
@@ -117,10 +108,6 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
 
                 val_loss += criterion(outputs, midi_series).item()
         val_loss /= len(val_dataloader)
-
-        end = time.time()
-        delta_time = end - start
-        print("Validating time: ", delta_time)
 
         scheduler.step(val_loss)
 
@@ -166,7 +153,7 @@ if __name__ == "__main__":
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
     val_dataloader = DataLoader(val_dataset, shuffle=False, pin_memory=True)
 
-    model = ModelLSTM(input_dim=3, hidden_dim=hidden_dim, output_dim=1, max_seq_len=max_seq_len, max_series_len=max_series_len, rnn_layers=rnn_layers)
+    model = ModelLSTM(input_dim=3, hidden_dim=hidden_dim, output_dim=2, max_seq_len=max_seq_len, max_series_len=max_series_len, rnn_layers=rnn_layers)
     model = torch.compile(model)
     epochs = epochs
     learning_data, learning_data_val = train_model(model, dataloader, val_dataloader, epochs=epochs, device=device, learning_rate=learning_rate, weight_decay=weight_decay, lr_patience=3, es_patience=13, teacher_epochs=5)
