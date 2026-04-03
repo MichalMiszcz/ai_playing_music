@@ -1,6 +1,6 @@
 """
 Implementacja klasy datasetu podającego midi w formacie wyglądającym w następujący sposób:
-[64, 64, 65, 64, 64, 64, 64, 62, 62, 62, 62, 62, 62, ... , 60]
+[(64, 20160), (72, 20160), (72, 5040), (65, 10080), (64, 5040), ...]
 """
 
 import torch
@@ -16,14 +16,17 @@ note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
 velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
 delta_time_to_index = {midi_num: i for i, midi_num in enumerate(DELTA_TIME)}
 
+
 class MusicImageDataset(Dataset):
-    def __init__(self, image_root, midi_root, left_hand_tracks=["Piano left"], right_hand_tracks=["Piano right"], image_transform=None, max_seq_len=100, max_midi_files=100, modify_image=False, aug_prob = 0.0):
+    def __init__(self, image_root, midi_root, left_hand_tracks=["Piano left"], right_hand_tracks=["Piano right"],
+                 image_transform=None, max_seq_len=100, max_series_len=500, max_midi_files=100, modify_image=False, aug_prob=0.0):
         self.image_root = image_root
         self.midi_root = midi_root
         self.left_hand_tracks = left_hand_tracks
         self.right_hand_tracks = right_hand_tracks
         self.image_transform = image_transform if image_transform else transforms.ToTensor()
         self.max_seq_len = max_seq_len
+        self.max_series_len = max_series_len
         self.modify_image = modify_image
         self.aug_prob = aug_prob
 
@@ -41,6 +44,7 @@ class MusicImageDataset(Dataset):
 
         self.image_paths = []
         self.midi_features = {}
+        self.midi_time_seq = {}
         records_to_remove = []
 
         for folder, author, midi_file in self.selected_midi_files:
@@ -56,14 +60,28 @@ class MusicImageDataset(Dataset):
                 else:
                     midi_seq += [(0, 0, 0)] * (self.max_seq_len - len(midi_seq))
 
-                self.midi_features[midi_key] = midi_seq
+                # self.midi_features[midi_key] = midi_seq
+                self.midi_features[midi_key] = [
+                    (note_idx / (NUM_NOTES - 1.0),
+                     velocity_idx / (NUM_VELOCITIES - 1.0),
+                     delta_time_idx / (NUM_DELTA_TIME - 1.0))
+                    for note_idx, velocity_idx, delta_time_idx in midi_seq
+                ]
+
+                # self.midi_time_seq[midi_key] = self.create_time_series(midi_seq)
+                self.midi_time_seq[midi_key] = [
+                    (note_idx / (NUM_NOTES - 1.0),
+                    delta_time_idx / (NUM_DELTA_TIME - 1.0))
+                    for note_idx, delta_time_idx in self.create_time_series(midi_seq)
+                ]
+
             except Exception as e:
                 print(f"Error processing MIDI {midi_file}: {e}")
                 records_to_remove.append((folder, author, midi_file))
                 continue
 
             folder = os.path.splitext(os.path.basename(midi_file))[0]
-            file = os.path.splitext(os.path.basename(midi_file))[0] + "-1" # Added only for my files
+            file = os.path.splitext(os.path.basename(midi_file))[0] + "-1"  # Added only for my files
             image_dir = os.path.join(image_root, author, folder)
 
             if os.path.exists(image_dir):
@@ -86,6 +104,7 @@ class MusicImageDataset(Dataset):
 
     def __len__(self):
         return len(self.image_paths)
+
 
     def __getitem__(self, idx):
         img_path = self.image_paths[idx]
@@ -112,24 +131,13 @@ class MusicImageDataset(Dataset):
         if self.image_transform:
             image = self.image_transform(image)
 
-        midi_seq = self.midi_features.get(midi_key, [(0, 0, 0)] * self.max_seq_len)
-        midi_seq = self.create_time_series(midi_seq)
-        # print('Midi seq:', midi_seq)
+        normalized_seq = self.midi_time_seq.get(midi_key)
+        midi_tensor_series = torch.tensor(normalized_seq, dtype=torch.float32)
 
-        normalized_seq = [
-            note_idx / (NUM_NOTES - 1.0)
-            for note_idx in midi_seq
-        ]
-        # print('Normalized seq:', normalized_seq)
-
-        midi_tensor = torch.tensor(normalized_seq, dtype=torch.float32)
-        # print('Midi tensor: ', midi_tensor)
-
-        return image, midi_tensor
+        return image, midi_tensor_series
 
     def create_time_series(self, midi_seq):
         time_series = []
-
         current_note = None
 
         for row in midi_seq:
@@ -141,14 +149,14 @@ class MusicImageDataset(Dataset):
                 current_note = note
             else:
                 if current_note is not None:
-                    time_series.extend([current_note] * delta_time)
-                    time_series.extend([STOP_SIGN])
+                    time_series.append((note, delta_time))
                     current_note = None
 
-        if len(time_series) < self.max_seq_len:
-            time_series.extend([0] * (self.max_seq_len - len(time_series)))
+        if len(time_series) < self.max_series_len:
+            time_series.extend([(0, 0)] * (self.max_series_len - len(time_series)))
 
         return time_series
+
 
 # def modify_image_opencv(image_array, angle, x_shift, y_shift):
 #     (h, w) = image_array.shape[:2]
@@ -216,3 +224,4 @@ def extract_notes_from_midi(midi_path, left_hand_tracks, right_hand_tracks):
         prev_time = time
 
     return sequence
+

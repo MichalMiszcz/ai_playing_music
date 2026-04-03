@@ -15,12 +15,18 @@ def preprocess_midi(midi_file, max_duration=10.0, fixed_bpm=120):
     print(f"Ticks per Beat: {mid.ticks_per_beat}")
     print(f"Length (seconds): {mid.length:.2f}")
 
+    sequence = []
+
     # Print information for each track
     print("\n==== TRACKS ====")
     for i, track in enumerate(mid.tracks):
         print(f"\nTrack {i}: {track.name}")
         for msg in track:
             print(msg)
+            if msg.type == "note_on" or msg.type == "note_off":
+                sequence.append((msg.note, msg.velocity, msg.time))
+
+    print(sequence)
 
     # tempo = mido.bpm2tempo(fixed_bpm)
 
@@ -48,10 +54,10 @@ def preprocess_midi(midi_file, max_duration=10.0, fixed_bpm=120):
 if __name__ == "__main__":
     # midi_example = "src/kotek.mid"
     # midi_example = "../src/generated_songs_processed/my_midi_files/song_2.mid"
-    # midi_example = "src/all_data/generated/generated_complex_midi_processed/my_midi_files/song_3.mid"
+    midi_example = "src/all_data/generated/generated_complex_midi_processed/my_midi_files/song_1.mid"
     # midi_example = "src/output_sheet_vision.mid"
     # midi_example = "src/all_data/data_to_analyze/midi/song_7.mid"
-    midi_example = "src/all_data/data/my_simple_songs/my_simple_songs/my_midi_files/c.mid"
+    # midi_example = "src/all_data/data/my_simple_songs/my_simple_songs/my_midi_files/c.mid"
     preprocess_midi(midi_example)
     #
     # midi_example = "src/all_data/generated/generated_songs_processed_test/my_midi_files/song_1.mid"

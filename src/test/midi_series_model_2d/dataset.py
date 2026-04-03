@@ -1,6 +1,6 @@
 """
 Implementacja klasy datasetu podającego sekwencje midi oraz ich wersje w formacie wyglądającym w następujący sposób:
-[64, 64, 65, 64, 64, 64, 64, 62, 62, 62, 62, 62, 62, ... , 60]
+[(64, 20160), (72, 20160), (72, 5040), (65, 10080), (64, 5040), ...]
 """
 
 import torch

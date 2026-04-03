@@ -19,10 +19,10 @@ from src.test.midi_series_model_2d.dataset import MusicSequenceDataset
 max_seq_len = 96
 max_series_len = int(max_seq_len / 2)
 
-max_midi_files=4096
-max_midi_files_test=512
-batch_size=32
-hidden_dim=128
+max_midi_files=8192
+max_midi_files_test=1024
+batch_size=128
+hidden_dim=256
 rnn_layers=2
 
 epochs=100
