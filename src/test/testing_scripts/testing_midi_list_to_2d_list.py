@@ -3,6 +3,10 @@ from src.music_program.utils.global_variables import *
 note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
 delta_time_to_index = {delta_num: i for i, delta_num in enumerate(DELTA_TIME)}
 
+def max_index():
+    max_index = (NUM_DELTA_TIME - 1) + (NUM_DELTA_TIME - 1) * (NUM_NOTES - 1)
+    return max_index
+
 def make_indexes(note_idx, delta_time_idx):
     index = delta_time_idx + (NUM_DELTA_TIME - 1) * note_idx
     return index
@@ -55,6 +59,8 @@ def time_series_to_midi_seq(time_series):
 
 if "__main__" == __name__:
     # midi_seq = [(64, 90, 0), (64, 0, 10080), (67, 90, 0), (67, 0, 5040), (64, 90, 0), (64, 0, 20160), (62, 90, 0), (62, 0, 30240), (62, 90, 0), (62, 0, 5040), (60, 0, 0), (60, 0, 0), (60, 0, 0), (60, 0, 0)]
+
+    print(max_index())
 
     WHITE_KEYS_MIDI_temp = [60, 62, 64, 65, 67, 69, 71, 72]
     DELTA_TIME_temp = [5040, 10080, 20160, 30240, 40320]
