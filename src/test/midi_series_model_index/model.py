@@ -2,7 +2,7 @@
 Implementacja modelu sekwencja-sekwencja (MIDI — ciąg nut).
 
 Wyjściowa sekwencja wygląda w następujący sposób:
-[1, 2, 4, 1, 4, 4, ...]
+[64, 64, 65, 64, 64, 64, 64, 62, 62, 62, 62, 62, 62, ... , 60]
 """
 
 import random
@@ -12,9 +12,7 @@ import torch.nn as nn
 
 
 class ModelLSTM(nn.Module):
-    def __init__(self, hidden_dim=64, input_dim=3, output_dim=1, rnn_layers=2, max_seq_len=90, max_series_len=45) -> None:
-        print(max_series_len)
-
+    def __init__(self, hidden_dim=64, input_dim=3, output_dim=1, rnn_layers=2, max_seq_len=90, max_series_len=450) -> None:
         super(ModelLSTM, self).__init__()
         self.max_seq_len = max_seq_len
         self.max_series_len = max_series_len
@@ -40,9 +38,7 @@ class ModelLSTM(nn.Module):
         # nowe generowanie sekwencji
         use_teacher_learning = random.random()
         if target is not None and teacher_ratio is not None and use_teacher_learning <= teacher_ratio:
-            print(target.shape)
             target = target.view(target.size(0), target.size(1), 1)
-            print(target.shape)
 
             input_seq = torch.cat([torch.zeros(batch_size, 1, self.output_dim).to(x.device), target[:, :-1, :]], dim=1)
 
