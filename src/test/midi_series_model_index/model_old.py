@@ -12,20 +12,20 @@ import torch.nn as nn
 
 
 class ModelLSTM(nn.Module):
-    def __init__(self, embedding_dim=64, hidden_dim=64, input_dim=3, rnn_layers=2, max_seq_len=90, max_series_len=450, vocab_size=40) -> None:
+    def __init__(self, hidden_dim=64, input_dim=3, output_dim=1, rnn_layers=2, max_seq_len=90, max_series_len=450) -> None:
         super(ModelLSTM, self).__init__()
         self.max_seq_len = max_seq_len
         self.max_series_len = max_series_len
         self.hidden_dim = hidden_dim
-        self.vocab_size = vocab_size
 
         self.encoder = nn.LSTM(input_size=input_dim, hidden_size=hidden_dim, num_layers=rnn_layers, dropout=0.4, batch_first=True)
-        self.embedding = nn.Embedding(num_embeddings=vocab_size, embedding_dim=embedding_dim)
-        self.decoder = nn.LSTM(input_size=embedding_dim + hidden_dim, hidden_size=hidden_dim, num_layers=rnn_layers, dropout=0.4, batch_first=True)
+        self.decoder = nn.LSTM(input_size=output_dim + hidden_dim, hidden_size=hidden_dim, num_layers=rnn_layers, dropout=0.4, batch_first=True)
         self.encoder_linear = nn.Linear(max_seq_len * hidden_dim, hidden_dim)
         self.proj_h = nn.Linear(hidden_dim, hidden_dim * rnn_layers)
         self.proj_c = nn.Linear(hidden_dim, hidden_dim * rnn_layers)
-        self.linear = nn.Linear(hidden_dim, vocab_size)
+        self.linear = nn.Linear(hidden_dim, output_dim)
+
+        self.output_dim = output_dim
 
     def forward(self, x, target=None, teacher_ratio=None):
         batch_size = x.size(0)
@@ -38,10 +38,9 @@ class ModelLSTM(nn.Module):
         # nowe generowanie sekwencji
         use_teacher_learning = random.random()
         if target is not None and teacher_ratio is not None and use_teacher_learning <= teacher_ratio:
-            target_embedded = self.embedding(target)
+            target = target.view(target.size(0), target.size(1), 1)
 
-            sos_token = torch.zeros(batch_size, 1, self.embedding.embedding_dim).to(x.device)
-            input_seq = torch.cat([sos_token, target_embedded[:, :-1, :]], dim=1)
+            input_seq = torch.cat([torch.zeros(batch_size, 1, self.output_dim).to(x.device), target[:, :-1, :]], dim=1)
 
             # dodane
             seq_len = input_seq.size(1)
@@ -53,11 +52,14 @@ class ModelLSTM(nn.Module):
             # output, _ = self.rnn(input_seq, (h0, c0))
             output = self.linear(output)
 
-            # output = output.view(output.size(0), output.size(1))
+            # output = torch.sigmoid(output)
+            output = torch.tanh(output)
+
+            output = output.view(output.size(0), output.size(1))
             return output
         else:
             output_seq = []
-            input_note = torch.zeros(batch_size, 1, self.embedding.embedding_dim).to(x.device)
+            input_note = torch.zeros(batch_size, 1, self.output_dim).to(x.device)
             hidden = None  # (h0, c0)
 
             # dodane
@@ -73,12 +75,12 @@ class ModelLSTM(nn.Module):
                 # output, hidden = self.rnn(input_note, hidden)
                 output, hidden = self.decoder(decoder_input, hidden)
                 output = self.linear(output)
-                output_seq.append(output)
+                output = var_tanh(output)
 
-                predicted_idx = output.argmax(dim=-1)
-                input_note = self.embedding(predicted_idx)
+                output_seq.append(output)
+                input_note = output
 
             output = torch.cat(output_seq, dim=1)
-            # output = output.view(output.size(0), output.size(1))
+            output = output.view(output.size(0), output.size(1))
 
             return output

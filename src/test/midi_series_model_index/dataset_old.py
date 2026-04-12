@@ -68,8 +68,11 @@ class MusicSequenceDataset(Dataset):
                     for note_idx, velocity_idx, delta_time_idx in midi_seq
                 ]
 
+                max_index = index_to_note_delta_time.max_index()
+
+                # self.midi_time_seq[midi_key] = self.create_time_series(midi_seq)
                 self.midi_time_seq[midi_key] = [
-                    note_idx
+                    note_idx / max_index
                     for note_idx in self.create_time_series(midi_seq)
                 ]
 
@@ -113,7 +116,7 @@ class MusicSequenceDataset(Dataset):
         midi_tensor = torch.tensor(normalized_seq, dtype=torch.float32)
 
         normalized_seq = self.midi_time_seq.get(midi_key)
-        midi_tensor_series = torch.tensor(normalized_seq, dtype=torch.int32)
+        midi_tensor_series = torch.tensor(normalized_seq, dtype=torch.float32)
 
         return midi_tensor, midi_tensor_series
 

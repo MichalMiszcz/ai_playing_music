@@ -1,13 +1,9 @@
 import torch
 from torchvision import transforms
-import mido
 
-from src.test.midi_series_model_2d.model import ModelLSTM
+from src.test.midi_series_model_index.model import ModelLSTM
 from src.music_program.utils.global_variables import *
-
-note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
-velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
-delta_time_to_index = {midi_num: i for i, midi_num in enumerate(DELTA_TIME)}
+from src.utils import index_to_note_delta_time
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -20,7 +16,7 @@ image_transform = transforms.Compose([
     # transforms.Normalize(mean=[0.5], std=[0.5])
 ])
 
-model_path = 'src/model_lstm_best_to_test.pth'
+model_path = 'src/model_lstm_best_index.pth'
 
 max_seq_len = 96
 max_series_len = int(max_seq_len / 2)
@@ -28,7 +24,7 @@ max_series_len = int(max_seq_len / 2)
 max_midi_files = 8192
 max_midi_files_test = 1024
 batch_size = 128
-hidden_dim = 256
+hidden_dim = 64
 rnn_layers = 2
 
 epochs = 100
@@ -38,17 +34,18 @@ max_norm = 1.0
 
 
 def time_series_to_midi_seq(time_series):
+    index_dict = index_to_note_delta_time.index_to_note_delta_time_dict()
+    max_index = index_to_note_delta_time.max_index()
+
     time_series = [
-        (int(round(norm_note * (NUM_NOTES - 1.0))),
-         int(round(norm_delta_time * (NUM_DELTA_TIME - 1.0))))
-        for norm_note, norm_delta_time in time_series
+        int(round(norm_index * (max_index - 1.0)))
+        for norm_index in time_series
     ]
     print(time_series)
 
     time_series = [
-        (max(0, min(WHITE_KEYS_MIDI[note], WHITE_KEYS_MIDI[NUM_NOTES - 1])),
-         max(0, min(DELTA_TIME[delta_time], DELTA_TIME[NUM_DELTA_TIME - 1])))
-        for note, delta_time in time_series
+        index_dict[index]
+        for index in time_series
     ]
     print(time_series)
 
@@ -62,7 +59,7 @@ def time_series_to_midi_seq(time_series):
 
 
 def generate_from_model(input_midi):
-    model = ModelLSTM(input_dim=3, hidden_dim=hidden_dim, output_dim=2, max_seq_len=max_seq_len,
+    model = ModelLSTM(input_dim=3, hidden_dim=hidden_dim, output_dim=1, max_seq_len=max_seq_len,
                       max_series_len=max_series_len, rnn_layers=rnn_layers)
     model = torch.compile(model)
     model.to(device)
@@ -96,6 +93,7 @@ if __name__ == "__main__":
          delta_time_to_index[delta_time])
         for note, velocity, delta_time in input_sequence
     ]
+
     input_sequence.extend([(0, 0, 0)] * (max_seq_len - len(input_sequence)))
 
     input_sequence = [

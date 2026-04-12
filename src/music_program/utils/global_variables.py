@@ -18,3 +18,7 @@ NUM_VELOCITIES = len(VELOCITY)
 # DELTA_TIME = [0, 10080, 20160, 30240, 40320]
 DELTA_TIME = [0, 5040, 10080, 20160, 30240, 40320]
 NUM_DELTA_TIME = len(DELTA_TIME)
+
+note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
+velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
+delta_time_to_index = {midi_num: i for i, midi_num in enumerate(DELTA_TIME)}

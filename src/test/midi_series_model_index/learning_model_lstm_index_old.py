@@ -15,18 +15,14 @@ from src.music_program.utils.global_variables import *
 
 from src.test.midi_series_model_index.model import ModelLSTM
 from src.test.midi_series_model_index.dataset import MusicSequenceDataset
-from src.utils.index_to_note_delta_time import max_index
 
 max_seq_len = 96
 max_series_len = int(max_seq_len / 2)
-vocab_size = max_index() + 1
-print("Vocab size: ", vocab_size)
 
 max_midi_files=8192
 max_midi_files_test=1024
 batch_size=32
 hidden_dim=64
-embedding_dim=64
 rnn_layers=2
 
 epochs=100
@@ -65,7 +61,7 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
     learning_data_val = []
 
     model = model.to(device)
-    criterion = nn.CrossEntropyLoss()
+    criterion = torch.nn.MSELoss() #LpLoss(1.5) #torch.nn.MSELoss() #torch.nn.HuberLoss(delta=1.0)
 
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=lr_patience)
@@ -93,10 +89,7 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
             optimizer.zero_grad()
             output = model(midi_batch, midi_series, teacher_ratio)
 
-            flatten_output = output.reshape(-1, output.size(-1))
-            flatten_target = midi_series.reshape(-1).long()
-
-            loss = criterion(flatten_output, flatten_target)
+            loss = criterion(output, midi_series)
             loss.backward()
 
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=max_norm)
@@ -113,9 +106,7 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
                 midi_batch, midi_series = midi_batch.to(device, non_blocking=True), midi_series.to(device, non_blocking=True)
                 outputs = model(midi_batch)
 
-                flatten_outputs = outputs.reshape(-1, outputs.size(-1))
-                flatten_target = midi_series.reshape(-1).long()
-                val_loss += criterion(flatten_outputs, flatten_target).item()
+                val_loss += criterion(outputs, midi_series).item()
         val_loss /= len(val_dataloader)
 
         scheduler.step(val_loss)
@@ -162,7 +153,7 @@ if __name__ == "__main__":
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
     val_dataloader = DataLoader(val_dataset, shuffle=False, pin_memory=True)
 
-    model = ModelLSTM(input_dim=3, embedding_dim=embedding_dim, hidden_dim=hidden_dim, max_seq_len=max_seq_len, max_series_len=max_series_len, rnn_layers=rnn_layers, vocab_size=vocab_size)
+    model = ModelLSTM(input_dim=3, hidden_dim=hidden_dim, output_dim=1, max_seq_len=max_seq_len, max_series_len=max_series_len, rnn_layers=rnn_layers)
     model = torch.compile(model)
     epochs = epochs
     learning_data, learning_data_val = train_model(model, dataloader, val_dataloader, epochs=epochs, device=device, learning_rate=learning_rate, weight_decay=weight_decay, lr_patience=3, es_patience=13, teacher_epochs=5)
