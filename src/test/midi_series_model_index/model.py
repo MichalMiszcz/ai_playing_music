@@ -19,7 +19,7 @@ class ModelLSTM(nn.Module):
         self.hidden_dim = hidden_dim
         self.vocab_size = vocab_size
 
-        self.encoder = nn.LSTM(input_size=input_dim, hidden_size=hidden_dim, num_layers=rnn_layers, dropout=0.4, batch_first=True)
+        self.encoder = nn.LSTM(input_size=input_dim, hidden_size=hidden_dim, num_layers=rnn_layers, dropout=0.1, batch_first=True)
         self.embedding = nn.Embedding(num_embeddings=vocab_size, embedding_dim=embedding_dim)
         self.decoder = nn.LSTM(input_size=embedding_dim + hidden_dim, hidden_size=hidden_dim, num_layers=rnn_layers, dropout=0.4, batch_first=True)
         self.encoder_linear = nn.Linear(max_seq_len * hidden_dim, hidden_dim)

@@ -17,22 +17,30 @@ from src.test.midi_series_model_index.model import ModelLSTM
 from src.test.midi_series_model_index.dataset import MusicSequenceDataset
 from src.utils.index_to_note_delta_time import max_index
 
+version = 12
+
 max_seq_len = 96
 max_series_len = int(max_seq_len / 2)
 vocab_size = max_index() + 1
 print("Vocab size: ", vocab_size)
 
-max_midi_files=8192
-max_midi_files_test=1024
-batch_size=32
-hidden_dim=64
-embedding_dim=64
-rnn_layers=2
+max_midi_files = 10240
+max_midi_files_test = 1024
+batch_size = 8
+hidden_dim = 64
+embedding_dim = 12
+rnn_layers = 2
 
-epochs=100
+epochs = 100
 learning_rate = 0.001
 weight_decay = 0.00001
-max_norm=1.0
+max_norm = 1.0
+
+lr_patience = 5
+es_patience = 15
+teacher_epochs = 10
+
+model_dir = None #'src/model_lstm_best_index_v5_1.pth'
 
 image_root = "src/all_data/generated/my_complex_images/my_midi_images"
 midi_root = "src/all_data/generated/generated_complex_midi_processed"
@@ -68,9 +76,8 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
     criterion = nn.CrossEntropyLoss()
 
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=lr_patience)
-    # scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=2e-3,
-                                                # steps_per_epoch=len(dataloader), epochs=epochs)
+    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=lr_patience)
+    scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=1e-3, steps_per_epoch=len(dataloader), epochs=epochs)
     # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.1)
 
     best_val_loss = float("inf")
@@ -83,7 +90,8 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
 
         # epochs_ratio = epoch/epochs
         if epoch > teacher_epochs:
-            teacher_ratio = max(0.0, 0.75 - (epoch / epochs))
+            # teacher_ratio = max(0.5, 0.9 - (epoch / epochs))
+            teacher_ratio = max(0.2, (0.9 - (epoch / epochs)) * 1.1)
         else:
             teacher_ratio = 1.0
 
@@ -118,7 +126,8 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
                 val_loss += criterion(flatten_outputs, flatten_target).item()
         val_loss /= len(val_dataloader)
 
-        scheduler.step(val_loss)
+        # scheduler.step(val_loss)
+        scheduler.step()
 
         print(f"Epoch {epoch+1}/{epochs}, Average Loss: {avg_loss:.6f}")
         print(f"Epoch {epoch+1}/{epochs}, Validation Loss: {val_loss:.6f}")
@@ -128,8 +137,8 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             patience_counter = 0
-            torch.save(model.state_dict(), 'src/model_lstm_best.pth')
-            print("Model saved as 'model_lstm_best.pth'")
+            torch.save(model.state_dict(), f'src/model_lstm_best_index_v{version}.pth')
+            print(f"Model saved as 'src/model_lstm_best_index_v{version}.pth'")
         else:
             patience_counter += 1
 
@@ -160,12 +169,19 @@ if __name__ == "__main__":
     val_dataset = MusicSequenceDataset(image_root_test, midi_root_test, left_hand_tracks, right_hand_tracks, image_transform, max_seq_len=max_seq_len, max_series_len=max_series_len, max_midi_files=max_midi_files_test, modify_image=False)
 
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
-    val_dataloader = DataLoader(val_dataset, shuffle=False, pin_memory=True)
+    val_dataloader = DataLoader(val_dataset, batch_size=4, shuffle=False, pin_memory=True)
 
     model = ModelLSTM(input_dim=3, embedding_dim=embedding_dim, hidden_dim=hidden_dim, max_seq_len=max_seq_len, max_series_len=max_series_len, rnn_layers=rnn_layers, vocab_size=vocab_size)
     model = torch.compile(model)
+
+    if model_dir:
+        print("Loading model: ", model_dir)
+        model.load_state_dict(torch.load(model_dir, map_location=device, weights_only=True))
+    else:
+        print("Learning new model")
+
     epochs = epochs
-    learning_data, learning_data_val = train_model(model, dataloader, val_dataloader, epochs=epochs, device=device, learning_rate=learning_rate, weight_decay=weight_decay, lr_patience=3, es_patience=13, teacher_epochs=5)
+    learning_data, learning_data_val = train_model(model, dataloader, val_dataloader, epochs=epochs, device=device, learning_rate=learning_rate, weight_decay=weight_decay, lr_patience=lr_patience, es_patience=es_patience, teacher_epochs=teacher_epochs)
 
     generate_chart(learning_data, 'Training Loss over Epochs')
     generate_chart(learning_data_val, 'Validation Loss over Epochs')

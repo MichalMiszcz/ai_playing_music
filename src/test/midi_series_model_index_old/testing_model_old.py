@@ -3,7 +3,6 @@ from torchvision import transforms
 
 from src.test.midi_series_model_index.model import ModelLSTM
 from src.music_program.utils.global_variables import *
-from src.utils.index_to_note_delta_time import max_index
 from src.utils import index_to_note_delta_time
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -17,24 +16,21 @@ image_transform = transforms.Compose([
     # transforms.Normalize(mean=[0.5], std=[0.5])
 ])
 
-model_path = 'src/model_lstm_best_index_v8.pth'
+model_path = 'src/model_lstm_best_index.pth'
 
 max_seq_len = 96
 max_series_len = int(max_seq_len / 2)
-vocab_size = max_index() + 1
-print("Vocab size: ", vocab_size)
 
-max_midi_files=8192 #1024
-max_midi_files_test=1024 #16
-batch_size=32 #4
-hidden_dim=256
-embedding_dim=12
-rnn_layers=1
+max_midi_files = 8192
+max_midi_files_test = 1024
+batch_size = 128
+hidden_dim = 64
+rnn_layers = 2
 
-epochs=100
+epochs = 100
 learning_rate = 0.001
 weight_decay = 0.00001
-max_norm=1.0
+max_norm = 1.0
 
 
 def time_series_to_midi_seq(time_series):
@@ -63,8 +59,8 @@ def time_series_to_midi_seq(time_series):
 
 
 def generate_from_model(input_midi):
-    model = ModelLSTM(input_dim=3, embedding_dim=embedding_dim, hidden_dim=hidden_dim, max_seq_len=max_seq_len,
-                      max_series_len=max_series_len, rnn_layers=rnn_layers, vocab_size=vocab_size)
+    model = ModelLSTM(input_dim=3, hidden_dim=hidden_dim, output_dim=1, max_seq_len=max_seq_len,
+                      max_series_len=max_series_len, rnn_layers=rnn_layers)
     model = torch.compile(model)
     model.to(device)
     model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
@@ -72,17 +68,10 @@ def generate_from_model(input_midi):
 
     with torch.no_grad():
         output = model(input_midi)
-        output = output.argmax(dim=-1)
-        print(output)
-
         predicted_series = output[0].cpu().detach().numpy().tolist()
         predicted_series = predicted_series[:max_series_len]
-
-        index_dict = index_to_note_delta_time.index_to_note_delta_time_dict()
-        predicted_series = [index_dict[index] for index in predicted_series]
-
         print(predicted_series)
-        # predicted_series = time_series_to_midi_seq(predicted_series)
+        predicted_series = time_series_to_midi_seq(predicted_series)
 
     return predicted_series
 
@@ -119,4 +108,4 @@ if __name__ == "__main__":
 
     time_series = generate_from_model(input_sequence)
 
-    # print(time_series)
+    print(time_series)
