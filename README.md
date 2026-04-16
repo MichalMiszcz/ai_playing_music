@@ -22,5 +22,6 @@ do zmiennych środowiskowych.
   modelu, dataloader oraz sekwencję uczenia
   - [new_data_generator](src/new_data_generator) - folder zawierający skrypty w python-ie służące do generowania nowych plików
   MIDI oraz nowych nut, które służą do uczenia modelu
+  - [plots](src/plots) - folder służący do przechowywania wykresów zawierających informacje na temat uczenia
   - [test](src/test) - folder zawierający pliki służące do testowania modelu lub nowych funkcji
   - [utils](src/utils) - folder zawierający pliki, używane w wielu programach na przestrzeni projektu

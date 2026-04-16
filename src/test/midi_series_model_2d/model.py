@@ -36,7 +36,7 @@ class ModelLSTM(nn.Module):
         features = self.encoder_linear(encoder_output)
 
         # nowe generowanie sekwencji
-        use_teacher_learning = random.random()
+        use_teacher_learning = torch.rand(1).item()
         if target is not None and teacher_ratio is not None and use_teacher_learning <= teacher_ratio:
             input_seq = torch.cat([torch.zeros(batch_size, 1, self.output_dim).to(x.device), target[:, :-1, :]], dim=1)
 

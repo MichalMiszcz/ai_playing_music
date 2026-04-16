@@ -38,7 +38,7 @@ class ModelLSTM(nn.Module):
         features = self.encoder_linear(encoder_output)
 
         # nowe generowanie sekwencji
-        use_teacher_learning = random.random()
+        use_teacher_learning = torch.rand(1).item()
         if target is not None and teacher_ratio is not None and use_teacher_learning <= teacher_ratio:
             print(target.shape)
             target = target.view(target.size(0), target.size(1), 1)
