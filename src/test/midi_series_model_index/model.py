@@ -26,7 +26,7 @@ class ModelLSTM(nn.Module):
         self.proj_h = nn.Linear(hidden_dim, hidden_dim * rnn_layers)
         self.proj_c = nn.Linear(hidden_dim, hidden_dim * rnn_layers)
         self.linear = nn.Linear(hidden_dim, vocab_size)
-        self.dropout = nn.Dropout(0.3)
+        self.dropout = nn.Dropout(0.5)
 
     def forward(self, x, target=None, teacher_ratio=None):
         batch_size = x.size(0)

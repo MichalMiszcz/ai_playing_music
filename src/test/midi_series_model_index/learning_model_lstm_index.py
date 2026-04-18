@@ -20,7 +20,7 @@ from src.test.midi_series_model_index.dataset import MusicSequenceDataset
 from src.utils.index_to_note_delta_time import max_index
 
 # Parametry
-version = 18
+version = 19
 subversion = None
 
 max_seq_len = 96
@@ -29,7 +29,7 @@ vocab_size = max_index() + 1
 
 max_midi_files = 10240
 max_midi_files_test = 1024
-batch_size = 16
+batch_size = 64
 hidden_dim = 512
 embedding_dim = 12
 rnn_layers = 1
