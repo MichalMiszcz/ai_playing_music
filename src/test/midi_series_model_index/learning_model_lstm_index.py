@@ -137,7 +137,7 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             patience_counter = 0
-            torch.save(model.state_dict(), f'src/model_lstm_best_index_v{version_name}.pth')
+            torch.save(model.state_dict(), f'src/_models/autoencoder/model_lstm_best_index_v{version_name}.pth')
             print(f"Model saved as 'src/model_lstm_best_index_v{version_name}.pth'")
         else:
             patience_counter += 1

@@ -1,7 +1,8 @@
 import torch
 from torchvision import transforms
 
-from src.test.midi_series_model_index.model import ModelLSTM
+from src.test.midi_series_model_index_old.model_old import ModelLSTM
+# from src.test.midi_series_model_index.model import ModelLSTM
 from src.music_program.utils.global_variables import *
 from src.utils import index_to_note_delta_time
 
@@ -16,14 +17,14 @@ image_transform = transforms.Compose([
     # transforms.Normalize(mean=[0.5], std=[0.5])
 ])
 
-model_path = 'src/model_lstm_best_index.pth'
+model_path = 'src/_models/autoencoder/model_lstm_best_index.pth'
 
 max_seq_len = 96
 max_series_len = int(max_seq_len / 2)
 
 max_midi_files = 8192
 max_midi_files_test = 1024
-batch_size = 128
+batch_size = 32
 hidden_dim = 64
 rnn_layers = 2
 
@@ -59,7 +60,7 @@ def time_series_to_midi_seq(time_series):
 
 
 def generate_from_model(input_midi):
-    model = ModelLSTM(input_dim=3, hidden_dim=hidden_dim, output_dim=1, max_seq_len=max_seq_len,
+    model = ModelLSTM(input_dim=3, hidden_dim=hidden_dim, max_seq_len=max_seq_len,
                       max_series_len=max_series_len, rnn_layers=rnn_layers)
     model = torch.compile(model)
     model.to(device)

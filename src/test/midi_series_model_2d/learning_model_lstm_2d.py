@@ -16,19 +16,31 @@ from src.music_program.utils.global_variables import *
 from src.test.midi_series_model_2d.model import ModelLSTM
 from src.test.midi_series_model_2d.dataset import MusicSequenceDataset
 
+version = 2
+subversion = None
+
 max_seq_len = 96
 max_series_len = int(max_seq_len / 2)
 
 max_midi_files=8192
 max_midi_files_test=1024
-batch_size=128
-hidden_dim=256
+batch_size=32
+val_batch_size=8
+hidden_dim=64
 rnn_layers=2
 
 epochs=100
 learning_rate = 0.001
 weight_decay = 0.00001
 max_norm=1.0
+
+lr_patience = 5
+es_patience = 15
+teacher_epochs = 10
+
+version_name = 'midi-2D_'
+version_name += str(version) + '_' + str(subversion) if subversion is not None else str(version)
+print(f'Version name: {version_name}')
 
 image_root = "src/all_data/generated/my_complex_images/my_midi_images"
 midi_root = "src/all_data/generated/generated_complex_midi_processed"
@@ -79,7 +91,7 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
 
         # epochs_ratio = epoch/epochs
         if epoch > teacher_epochs:
-            teacher_ratio = max(0.0, 0.75 - (epoch / epochs))
+            teacher_ratio = max(0.0, 0.9 - (epoch / epochs))
         else:
             teacher_ratio = 1.0
 
@@ -119,8 +131,8 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             patience_counter = 0
-            torch.save(model.state_dict(), 'src/model_lstm_best.pth')
-            print("Model saved as 'model_lstm_best.pth'")
+            torch.save(model.state_dict(), f'src/_models/autoencoder/model_lstm_best_index_v{version_name}.pth')
+            print(f"Model saved as 'model_lstm_best_index_v{version_name}.pth'")
         else:
             patience_counter += 1
 
@@ -141,7 +153,8 @@ def generate_chart(data, title):
     plt.title(title)
     plt.grid(True)
     plt.tight_layout()
-    plt.show()
+    # plt.show()
+    plt.savefig(f'src/plots/{title}_v{version_name}.png')
 
 
 if __name__ == "__main__":
@@ -151,12 +164,12 @@ if __name__ == "__main__":
     val_dataset = MusicSequenceDataset(image_root_test, midi_root_test, left_hand_tracks, right_hand_tracks, image_transform, max_seq_len=max_seq_len, max_series_len=max_series_len, max_midi_files=max_midi_files_test, modify_image=False)
 
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
-    val_dataloader = DataLoader(val_dataset, shuffle=False, pin_memory=True)
+    val_dataloader = DataLoader(val_dataset, batch_size=val_batch_size, shuffle=False, pin_memory=True)
 
     model = ModelLSTM(input_dim=3, hidden_dim=hidden_dim, output_dim=2, max_seq_len=max_seq_len, max_series_len=max_series_len, rnn_layers=rnn_layers)
     model = torch.compile(model)
     epochs = epochs
-    learning_data, learning_data_val = train_model(model, dataloader, val_dataloader, epochs=epochs, device=device, learning_rate=learning_rate, weight_decay=weight_decay, lr_patience=3, es_patience=13, teacher_epochs=5)
+    learning_data, learning_data_val = train_model(model, dataloader, val_dataloader, epochs=epochs, device=device, learning_rate=learning_rate, weight_decay=weight_decay, lr_patience=lr_patience, es_patience=es_patience, teacher_epochs=teacher_epochs)
 
     generate_chart(learning_data, 'Training Loss over Epochs')
     generate_chart(learning_data_val, 'Validation Loss over Epochs')

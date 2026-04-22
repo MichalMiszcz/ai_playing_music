@@ -6,18 +6,19 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import pandas as pd
 
-from src.music_program.model.cnnrnn_model_4_5 import CNNRNNModel
-from src.music_program.dataset.music_image_dataset_4_greyscale import MusicImageDataset
+from src.music_program.model.cnnrnn_model_8 import CNNRNNModel
+from src.music_program.dataset.music_image_dataset_8 import MusicImageDataset
 from src.test.validating.accuracy import *
 from src.music_program.utils.global_variables import *
+from src.utils import index_to_note_delta_time
 
 note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
 velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
 delta_time_to_index = {midi_num: i for i, midi_num in enumerate(DELTA_TIME)}
 
-model_path = "model_best_24_03_big_batch_mse.pth"
-image_root_test = "all_data/generated/my_complex_images_test/my_midi_images"
-midi_root_test = "all_data/generated/generated_complex_midi_processed_test"
+model_path = "src/_models/image_to_midi/model_best_index_v102.pth"
+image_root_test = "src/all_data/generated/my_complex_images_test/my_midi_images"
+midi_root_test = "src/all_data/generated/generated_complex_midi_processed_test"
 
 midi_columns = ['midi_note', 'velocity', 'delta_time']
 
@@ -26,10 +27,22 @@ midi_columns = ['midi_note', 'velocity', 'delta_time']
 # midi_root_test = "all_data/generated/generated_songs_processed_test_q"
 
 max_seq_len = 96
-max_midi_files = 32
+max_series_len = int(max_seq_len / 2)
+
+max_midi_files = 10240
+max_midi_files_test = 32
+batch_size=32
+val_batch_size=8
+hidden_dim=512
+rnn_layers=1
+
+epochs = 100
+learning_rate = 0.001
+weight_decay = 0.00001
+max_norm = 1.0
+
 left_hand_tracks = ['Piano left', 'Left']
 right_hand_tracks = ['Piano right', 'Right', 'Track 0']
-
 
 image_transform = transforms.Compose([
     transforms.Resize((HEIGHT, WIDTH)),
@@ -38,16 +51,20 @@ image_transform = transforms.Compose([
 ])
 
 # Dataset
-val_dataset = MusicImageDataset(image_root_test, midi_root_test, left_hand_tracks, right_hand_tracks, image_transform, max_seq_len=max_seq_len, max_midi_files=max_midi_files)
-val_dataloader = DataLoader(val_dataset, shuffle=False)
+val_dataset = MusicImageDataset(image_root_test, midi_root_test, left_hand_tracks, right_hand_tracks,
+                                image_transform, max_seq_len=max_seq_len, max_series_len=max_series_len,
+                                max_midi_files=max_midi_files_test, modify_image=False)
+val_dataloader = DataLoader(val_dataset, shuffle=False, pin_memory=True)
 
 # Loading model
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = CNNRNNModel(input_channels=1, hidden_dim=256, output_dim=3, rnn_layers=5, max_seq_len=max_seq_len)
+model = CNNRNNModel(input_channels=1, hidden_dim=hidden_dim, output_dim=1, max_seq_len=max_seq_len,
+                    max_series_len=max_series_len, rnn_layers=rnn_layers)
 model.to(device)
 
 model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
 model.eval()
+
 
 def from_raw_to_midi(sequence):
     final_predicted_sequence = []
@@ -69,11 +86,37 @@ def from_raw_to_midi(sequence):
     final_predicted_sequence = final_predicted_sequence[:max_seq_len]
     return final_predicted_sequence
 
+def from_raw_to_midi_index(sequence):
+    index_dict = index_to_note_delta_time.index_to_note_delta_time_dict()
+    max_index = index_to_note_delta_time.max_index()
+
+    time_series = [
+        int(round(norm_index * (max_index - 1.0)))
+        for norm_index in sequence
+    ]
+
+    print(time_series)
+
+    time_series = [
+        index_dict[index]
+        for index in time_series
+    ]
+
+    midi_seq_from_time_series = []
+
+    for note, time in time_series:
+        midi_seq_from_time_series.append((note, 90, 0))
+        midi_seq_from_time_series.append((note, 0, time))
+
+    return midi_seq_from_time_series
+
+
 def calculate_metric_for_column(df_predicted, df_source, column: str):
     notes_stats_df = pd.DataFrame()
     dtw_score = dynamic_time_warping_score(df_predicted, df_source, column)
     notes_stats_df['dtw_score'] = [dtw_score]
     return notes_stats_df
+
 
 def validate_predicted_midi(df_predicted: pd.DataFrame, df_source: pd.DataFrame):
     stats_df = pd.DataFrame()
@@ -86,7 +129,8 @@ def validate_predicted_midi(df_predicted: pd.DataFrame, df_source: pd.DataFrame)
 
     # dtw_score = dynamic_time_warping_score_multi_col(df_predicted, df_source, [midi_columns[0], 'delta_time_s_normalized'])
     dtw_score = dynamic_time_warping_score(df_predicted, df_source)
-    levenstein = edit_distance_multi_col(df_predicted, df_source, [midi_columns[0], 'velocity_normalized', 'delta_time_s'])
+    levenstein = edit_distance_multi_col(df_predicted, df_source,
+                                         [midi_columns[0], 'velocity_normalized', 'delta_time_s'])
     frechet = discrete_frechet(df_predicted, df_source, [midi_columns[0], 'velocity_normalized', 'time'])
 
     stats_df['DTW score'] = [dtw_score]
@@ -96,12 +140,14 @@ def validate_predicted_midi(df_predicted: pd.DataFrame, df_source: pd.DataFrame)
     return stats_df
     # return stats['midi_note'], stats['velocity'], stats['delta_time']
 
+
 def midi_to_df(midi_seq):
     df_midi = pd.DataFrame(midi_seq, columns=midi_columns)
     df_midi['delta_time_s'] = df_midi['delta_time'] / (10080 * 2)  # quarter note = 0.5s
     df_midi['time'] = df_midi['delta_time_s'].cumsum()
 
     return df_midi
+
 
 def calculate_measures(predicted_sequence, source_sequence):
     df_predicted_midi = midi_to_df(predicted_sequence)
@@ -126,7 +172,7 @@ def main():
     if model_mode == "scan2notes":
         midi_folder_path = midi_folder_path + "_sorted"
     midi_source_folder_path = "all_data/model_generated/source_midi"
-    csv_file = f"csv/notes_stats_{model_mode}_{res}.csv"
+    csv_file = f"src/csv/notes_stats_{model_mode}_{res}_index.csv"
     max_seq_len = 96
 
     if test_mode == "model":
@@ -143,15 +189,15 @@ def main():
                 midi_batch = midi_batch.tolist()
                 midi_batch = midi_batch[0]
 
-                predicted_midi_seq = from_raw_to_midi(predicted_sequence)
-                source_midi_seq = from_raw_to_midi(midi_batch)
+                predicted_midi_seq = from_raw_to_midi_index(predicted_sequence)
+                source_midi_seq = from_raw_to_midi_index(midi_batch)
 
                 df_results = calculate_measures(predicted_midi_seq, source_midi_seq)
 
                 df_final_results = pd.concat([df_final_results, df_results], ignore_index=True)
 
     elif test_mode == "midi":
-        def get_sequence_from_mido(mido: mido.MidiFile, mode = "midi"):
+        def get_sequence_from_mido(mido: mido.MidiFile, mode="midi"):
             sequence = []
             for j, track in enumerate(mido.tracks):
                 # if track.name in right_hand_tracks_for_validation:
@@ -196,6 +242,7 @@ def main():
                 print(sequence_source)
 
     df_final_results.to_csv(csv_file, index=True)
+
 
 if __name__ == '__main__':
     main()
