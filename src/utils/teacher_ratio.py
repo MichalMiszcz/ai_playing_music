@@ -8,10 +8,7 @@ def count_teacher_ratio(epoch, first_epoch, last_epoch):
     :param last_epoch: last epoch to use mix of teacher forcing and free-running (following epochs will have `teacher_ratio=0`)
     """
 
-    if epoch < first_epoch:
-        teacher_ratio = 1.0
-    else:
-        teacher_ratio = max(0.0, 1.0 - (epoch - first_epoch) / (last_epoch - first_epoch))
+    teacher_ratio = min(1.0, max(0.0, (epoch - last_epoch) / (first_epoch - last_epoch)))
 
     return teacher_ratio
 
