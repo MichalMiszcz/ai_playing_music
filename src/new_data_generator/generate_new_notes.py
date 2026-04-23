@@ -4,13 +4,16 @@ import os
 from src.music_program.utils.global_variables import WHITE_KEYS
 from src.utils import instances
 
-NUM_SONGS = 1024
+NUMBER_OF_EXISTING_SONGS = 1024
+NUM_SONGS = 1024 * 3
 NOTES_PER_MEASURE = 4.0
 TEMPO = 120
 
-output_folder_path = "../src/all_data/generated/generated_complex_midi_test"
+output_folder_path = "src/all_data/generated/generated_complex_midi_test"
 
 def generate_random_song(song_number):
+    song_number += NUMBER_OF_EXISTING_SONGS
+
     song = music21.stream.Score()
     part = music21.stream.Part()
 
@@ -74,7 +77,7 @@ def generate_random_song(song_number):
 
 
 def main():
-    max_instances = 8
+    max_instances = 6
 
     instance_num, lock_socket = instances.get_instance_id(max_instances=max_instances)
 
@@ -82,5 +85,5 @@ def main():
         generate_random_song(i)
 
 if __name__ == '__main__':
-    # main()
-    pass
+    main()
+    # pass
