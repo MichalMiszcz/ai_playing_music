@@ -99,6 +99,8 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
             # output = model(images, midi_batch, teacher_ratio)
             output = model(images, midi_batch, teacher_ratio)
 
+            print("Output: ", output[0])
+            print("Midi: ", midi_batch[0])
             loss = criterion(output, midi_batch)
             loss.backward()
 

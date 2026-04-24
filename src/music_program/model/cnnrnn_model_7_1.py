@@ -5,8 +5,6 @@ Wyjściowa sekwencja wygląda w następujący sposób:
 [(64, 20160), (72, 20160), (72, 5040), (65, 10080), (64, 5040), ...]
 """
 
-import random
-
 import torch
 import torch.nn as nn
 from torchvision import models
@@ -18,9 +16,8 @@ class CNNRNNModel(nn.Module):
         self.max_seq_len = max_seq_len
         self.max_series_len = max_series_len
         self.cnn = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
-        self.cnn.conv1 = nn.Conv2d(input_channels, 64, kernel_size=14, stride=3, padding=6, bias=False)
+        self.cnn.conv1 = nn.Conv2d(input_channels, 64, kernel_size=14, stride=1, padding=0, bias=False)
         self.cnn.fc = nn.Linear(512, hidden_dim)
-        self.cnn.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
         self.rnn = nn.LSTM(input_size=output_dim+hidden_dim, hidden_size=hidden_dim, num_layers=rnn_layers, dropout=0.5, batch_first=True)
         self.linear = nn.Linear(hidden_dim, output_dim)
@@ -41,18 +38,16 @@ class CNNRNNModel(nn.Module):
         if target is not None and teacher_ratio is not None and use_teacher_learning <= teacher_ratio:
             input_seq = torch.cat([torch.zeros(batch_size, 1, self.output_dim).to(x.device), target[:, :-1, :]], dim=1)
 
-            # dodane
             seq_len = input_seq.size(1)
             context = features.unsqueeze(1).expand(-1, seq_len, -1)
             rnn_input = torch.cat([input_seq, context], dim=-1)
-            # do tąd
 
             output, _ = self.rnn(rnn_input)
             # output, _ = self.rnn(input_seq, (h0, c0))
             output = self.linear(output)
 
-            # output = torch.sigmoid(output)
-            output = torch.tanh(output)
+            output = torch.sigmoid(output)
+            # output = torch.tanh(output)
             return output
         else:
             output_seq = []
@@ -62,17 +57,16 @@ class CNNRNNModel(nn.Module):
             # dodane
             context_step = features.unsqueeze(1)
 
-            # var_sigmoid = torch.sigmoid
-            var_tanh = torch.tanh
+            var_sigmoid = torch.sigmoid
+            # var_tanh = torch.tanh
             torch_cat = torch.cat
             for _ in range(self.max_series_len):
-                # dodane
                 rnn_input = torch_cat([input_note, context_step], dim=-1)
 
                 # output, hidden = self.rnn(input_note, hidden)
                 output, hidden = self.rnn(rnn_input, hidden)
                 output = self.linear(output)
-                output = var_tanh(output)
+                output = var_sigmoid(output)
 
                 output_seq.append(output)
                 input_note = output
