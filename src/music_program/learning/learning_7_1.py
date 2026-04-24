@@ -17,13 +17,17 @@ from src.music_program.utils.global_variables import *
 
 from src.music_program.model.cnnrnn_model_7 import CNNRNNModel
 from src.music_program.dataset.music_image_dataset_7 import MusicImageDataset
+from src.utils.teacher_ratio import count_teacher_ratio
 
 # Parametry modelu i uczenia
+version = 201
+subversion = None
+
 max_seq_len = 96
 max_series_len = int(max_seq_len / 2)
 
-max_midi_files = 1024#0
-max_midi_files_test = 10#24
+max_midi_files = 1024  # 0
+max_midi_files_test = 10  # 24
 batch_size = 128
 hidden_dim = 256
 rnn_layers = 2
@@ -32,6 +36,13 @@ epochs = 100
 learning_rate = 0.001
 weight_decay = 0.00001
 max_norm = 1.0
+
+lr_patience = 5
+es_patience = 15
+mixed_teacher_forcing_epochs = [5, 50]
+
+version_name = str(version) + '_' + str(subversion) if subversion is not None else str(version)
+print(f'Version name: {version_name}')
 
 image_root = "src/all_data/generated/my_complex_images/my_midi_images"
 midi_root = "src/all_data/generated/generated_complex_midi_processed"
@@ -64,7 +75,8 @@ class LpLoss(nn.Module):
 
 # Uczenie modelu
 def train_model(model, dataloader, val_dataloader, epochs=50, device=device, learning_rate=0.0005, weight_decay=0.00001,
-                max_norm=1.0, milestones=[100, 200, 300], lr_patience=6, es_patience=14, teacher_epochs=2):
+                max_norm=1.0, milestones=[100, 200, 300], lr_patience=6, es_patience=14,
+                mixed_teacher_forcing_epochs: list[int] | None = None):
     learning_data = []
     learning_data_val = []
 
@@ -86,10 +98,9 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
         total_loss = 0
 
         # epochs_ratio = epoch/epochs
-        if epoch > teacher_epochs:
-            teacher_ratio = max(0.0, 0.75 - (epoch / epochs))
-        else:
-            teacher_ratio = 1.0
+        first_epoch = mixed_teacher_forcing_epochs[0]
+        last_epoch = mixed_teacher_forcing_epochs[1]
+        teacher_ratio = count_teacher_ratio(epoch, first_epoch, last_epoch)
 
         for i, (images, midi_batch) in enumerate(dataloader):
             images = images.to(device, non_blocking=True)
@@ -135,8 +146,8 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             patience_counter = 0
-            torch.save(model.state_dict(), 'src/model_best_local.pth')
-            print("Model saved as 'model_best.pth'")
+            torch.save(model.state_dict(), f'src/_models/autoencoder/model_best_v{version_name}.pth')
+            print(f"Model saved as 'src/model_best_v{version_name}.pth'")
         else:
             patience_counter += 1
 
@@ -159,7 +170,8 @@ def generate_chart(data, title):
     plt.title(title)
     plt.grid(True)
     plt.tight_layout()
-    plt.show()
+    # plt.show()
+    plt.savefig(f'src/plots/{title}_v{version_name}.png')
 
 
 # Uruchomienie uczenia
@@ -183,7 +195,8 @@ if __name__ == "__main__":
     epochs = epochs
     learning_data, learning_data_val = train_model(model, dataloader, val_dataloader, epochs=epochs, device=device,
                                                    learning_rate=learning_rate, weight_decay=weight_decay,
-                                                   lr_patience=3, es_patience=13, teacher_epochs=3)
+                                                   lr_patience=lr_patience, es_patience=es_patience,
+                                                   mixed_teacher_forcing_epochs=mixed_teacher_forcing_epochs)
 
     generate_chart(learning_data, 'Training Loss over Epochs')
     generate_chart(learning_data_val, 'Validation Loss over Epochs')
