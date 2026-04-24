@@ -35,10 +35,10 @@ class MusicImageDataset(Dataset):
         midi_files = []
         for root, dirs, files in os.walk(midi_root):
             folder = os.path.basename(os.path.dirname(root))
-            author = os.path.basename(root)
+            subfolder = os.path.basename(root)
             for file in files:
                 if file.endswith('.mid'):
-                    midi_files.append((folder, author, os.path.join(root, file)))
+                    midi_files.append((folder, subfolder, os.path.join(root, file)))
 
         random.shuffle(midi_files)
         sorted_midi_files = sorted(midi_files[:max_midi_files], key=lambda x: x[2])
@@ -49,13 +49,13 @@ class MusicImageDataset(Dataset):
         self.midi_time_seq = {}
         records_to_remove = []
 
-        for folder, author, midi_file in self.selected_midi_files:
+        for folder, subfolder, midi_file in self.selected_midi_files:
             midi_name = os.path.splitext(os.path.basename(midi_file))[0]
-            midi_key = f"{author}/{midi_name}"
+            midi_key = f"{subfolder}/{midi_name}"
             try:
                 midi_seq = extract_notes_from_midi(midi_file, self.left_hand_tracks, self.right_hand_tracks)
                 if midi_seq is None:
-                    records_to_remove.append((folder, author, midi_file))
+                    records_to_remove.append((folder, subfolder, midi_file))
                     continue
                 if len(midi_seq) > self.max_seq_len:
                     midi_seq = midi_seq[:self.max_seq_len]
@@ -68,12 +68,11 @@ class MusicImageDataset(Dataset):
 
             except Exception as e:
                 print(f"Error processing MIDI {midi_file}: {e}")
-                records_to_remove.append((folder, author, midi_file))
+                records_to_remove.append((folder, subfolder, midi_file))
                 continue
 
             folder = os.path.splitext(os.path.basename(midi_file))[0]
-            file = os.path.splitext(os.path.basename(midi_file))[0] + "-1"  # Added only for my files
-            image_dir = os.path.join(image_root, author, folder)
+            image_dir = os.path.join(image_root, subfolder, folder)
 
             if os.path.exists(image_dir):
                 image_files = [f for f in os.listdir(image_dir) if f.endswith(('.png', '.jpg'))]
@@ -81,13 +80,13 @@ class MusicImageDataset(Dataset):
                     self.image_paths.append(os.path.join(image_dir, file))
 
         for record in records_to_remove:
+            print(f"Removing {record}")
             self.selected_midi_files.remove(record)
+            #usuwać też przypisany obraz
 
-        # all_delta_times = [delta_time for seq in self.midi_features.values() for _, _, delta_time in seq if delta_time > 0]
-        # self.max_delta_time = max(all_delta_times) if all_delta_times else 1
-        self.max_delta_time = max(DELTA_TIME)
-
+        self.max_delta_time = MAX_DELTA_TIME
         self.image_paths.sort()
+
         print(f"Selected {len(self.selected_midi_files)} MIDI files and {len(self.image_paths)} images.")
 
         if len(self.image_paths) == 0:
@@ -100,16 +99,16 @@ class MusicImageDataset(Dataset):
         img_path = self.image_paths[idx]
 
         rel_path = os.path.relpath(img_path, self.image_root)
-        composer, piece, _ = rel_path.split(os.sep)
-        midi_key = f"{composer}/{piece}"
+        subfolder, piece, _ = rel_path.split(os.sep)
+        midi_key = f"{subfolder}/{piece}"
 
         image = Image.open(img_path).convert('L')
 
         if self.image_transform:
             image = self.image_transform(image)
 
-        normalized_seq = self.midi_time_seq.get(midi_key)
-        midi_tensor_series = torch.tensor(normalized_seq, dtype=torch.float32)
+        normalized_series = self.midi_time_seq.get(midi_key)
+        midi_tensor_series = torch.tensor(normalized_series, dtype=torch.float32)
 
         return image, midi_tensor_series
 
