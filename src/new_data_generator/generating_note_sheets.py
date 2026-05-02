@@ -195,4 +195,4 @@ if __name__ == "__main__":
 
     # process_midi(midi_raw_folder_path, processed_folder_path, max_duration=24.0, fixed_bpm=120, add_track_name=True)
     # midi2jpg(processed_folder_path, image_folder_path)
-    midi2jpg(xml_raw_folder_path, image_folder_path, 'xml', instances_count=4)
+    midi2jpg(xml_raw_folder_path, image_folder_path, 'xml', instances_count=1)

@@ -3,13 +3,16 @@ from src.music_program.utils.global_variables import *
 note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
 delta_time_to_index = {delta_num: i for i, delta_num in enumerate(DELTA_TIME)}
 
+
 def max_index():
     max_index = (NUM_DELTA_TIME - 1) + (NUM_DELTA_TIME - 1) * (NUM_NOTES - 1)
     return max_index
 
+
 def make_indexes(note_idx, delta_time_idx):
     index = delta_time_idx + (NUM_DELTA_TIME - 1) * note_idx
     return index
+
 
 def create_time_series(midi_seq):
     time_series = []
@@ -36,14 +39,14 @@ def create_time_series(midi_seq):
 def time_series_to_midi_seq(time_series):
     time_series = [
         (int(round(norm_note * (NUM_NOTES - 1.0))),
-        int(round(norm_delta_time * (NUM_DELTA_TIME - 1.0))))
+         int(round(norm_delta_time * (NUM_DELTA_TIME - 1.0))))
         for norm_note, norm_delta_time in time_series
     ]
     print(time_series)
 
     time_series = [
         (max(0, min(WHITE_KEYS_MIDI[note], WHITE_KEYS_MIDI[NUM_NOTES - 1])),
-        max(0, min(DELTA_TIME[delta_time], DELTA_TIME[NUM_DELTA_TIME - 1])))
+         max(0, min(DELTA_TIME[delta_time], DELTA_TIME[NUM_DELTA_TIME - 1])))
         for note, delta_time in time_series
     ]
     print(time_series)
@@ -58,15 +61,12 @@ def time_series_to_midi_seq(time_series):
 
 
 if "__main__" == __name__:
-    midi_seq = [(64, 90, 0), (64, 0, 20160), (72, 90, 0), (72, 0, 20160), (72, 90, 0), (72, 0, 5040), (65, 90, 0),
-                      (65, 0, 10080), (64, 90, 0), (64, 0, 5040), (69, 90, 0), (69, 0, 5040), (60, 90, 0),
-                      (60, 0, 5040), (71, 90, 0), (71, 0, 5040), (71, 90, 0), (71, 0, 5040), (71, 90, 0), (71, 0, 5040),
-                      (62, 90, 0), (62, 0, 5040), (71, 90, 0), (71, 0, 5040), (72, 90, 0), (72, 0, 5040), (69, 90, 0),
-                      (69, 0, 20160), (60, 90, 0), (60, 0, 10080), (67, 90, 0), (67, 0, 20160), (64, 90, 0),
-                      (64, 0, 10080), (65, 90, 0), (65, 0, 10080), (72, 90, 0), (72, 0, 10080), (72, 90, 0),
-                      (72, 0, 20160), (60, 90, 0), (60, 0, 5040), (71, 90, 0), (71, 0, 5040), (65, 90, 0),
-                      (65, 0, 10080), (67, 90, 0), (67, 0, 5040), (62, 90, 0), (62, 0, 10080), (60, 90, 0),
-                      (60, 0, 5040), (65, 90, 0), (65, 0, 40320), (65, 90, 0), (65, 0, 40320)]
+    midi_seq = [(62, 90, 0), (62, 0, 20160), (71, 90, 0), (71, 0, 20160), (64, 90, 0), (64, 0, 20160), (62, 90, 0),
+                (62, 0, 10080), (64, 90, 0), (64, 0, 10080), (69, 90, 0), (69, 0, 10080), (65, 90, 0), (65, 0, 20160),
+                (60, 90, 0), (60, 0, 10080), (65, 90, 0), (65, 0, 40320), (71, 90, 0), (71, 0, 20160), (69, 90, 0),
+                (69, 0, 20160), (71, 90, 0), (71, 0, 40320), (72, 90, 0), (72, 0, 10080), (71, 90, 0), (71, 0, 20160),
+                (69, 90, 0), (69, 0, 10080), (64, 90, 0), (64, 0, 5040), (65, 90, 0), (65, 0, 10080), (65, 90, 0),
+                (65, 0, 5040), (71, 90, 0), (71, 0, 20160)]
 
     print(max_index())
 
@@ -87,9 +87,11 @@ if "__main__" == __name__:
     print(time_series)
     print(time_series_1d)
 
+    index_to_delta_time = {i: midi_num for i, midi_num in enumerate(DELTA_TIME)}
+
     normalized_seq = [
         (note_idx / (NUM_NOTES - 1.0),
-        delta_time_idx / (NUM_DELTA_TIME - 1.0))
+         index_to_delta_time[delta_time_idx] / MAX_DELTA_TIME)
         for note_idx, delta_time_idx in time_series
     ]
     print(normalized_seq)
@@ -97,4 +99,3 @@ if "__main__" == __name__:
     # Odczytywanie zakodowanych nut
     midi = time_series_to_midi_seq(normalized_seq)
     print(midi)
-

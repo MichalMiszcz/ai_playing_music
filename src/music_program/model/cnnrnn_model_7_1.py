@@ -16,10 +16,28 @@ class CNNRNNModel(nn.Module):
         self.max_seq_len = max_seq_len
         self.max_series_len = max_series_len
         self.cnn = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
-        self.cnn.conv1 = nn.Conv2d(input_channels, 64, kernel_size=14, stride=1, padding=0, bias=False)
-        self.cnn.fc = nn.Linear(512, hidden_dim)
+        # self.cnn = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
+        # self.cnn = models.resnet152(weights=models.ResNet152_Weights.DEFAULT)
 
-        self.rnn = nn.LSTM(input_size=output_dim+hidden_dim, hidden_size=hidden_dim, num_layers=rnn_layers, dropout=0.5, batch_first=True)
+        # cnn_resnet_weight = self.cnn.conv1.weight
+        # self.cnn.conv1 = nn.Conv2d(input_channels, 64, kernel_size=1, stride=1, padding=0, bias=False)
+        # self.cnn.conv1.weight.data = cnn_resnet_weight.mean(dim=1, keepdim=True)
+
+        stride = 16
+        kernel_size = 76 # nuta ma rozmiar 8 na 8 pikseli, a mamy 8 nut, które nachodzą na siebie, dodatkowo dodamy margines dla stride, oraz dodatkowy
+        padding = 0
+
+        print(f"Kernel size: {kernel_size}, stride: {stride}, padding: {padding}")
+
+        cnn_resnet_weight = self.cnn.conv1.weight
+        self.cnn.conv1 = nn.Conv2d(3, 64, kernel_size=kernel_size, stride=stride, padding=padding, bias=False)
+        self.cnn.conv1.weight = cnn_resnet_weight
+
+        # self.cnn.maxpool = nn.MaxPool2d(kernel_size=1, stride=1, padding=0)
+        self.cnn.fc = nn.Linear(512, hidden_dim)
+        # self.cnn.fc = nn.Linear(2048, hidden_dim)
+
+        self.rnn = nn.LSTM(input_size=output_dim+hidden_dim, hidden_size=hidden_dim, num_layers=rnn_layers, dropout=0.3, batch_first=True)
         self.linear = nn.Linear(hidden_dim, output_dim)
         self.proj_h = nn.Linear(hidden_dim, hidden_dim * rnn_layers)
         self.proj_c = nn.Linear(hidden_dim, hidden_dim * rnn_layers)
@@ -46,7 +64,8 @@ class CNNRNNModel(nn.Module):
             # output, _ = self.rnn(input_seq, (h0, c0))
             output = self.linear(output)
 
-            output = torch.sigmoid(output)
+            # output = torch.sigmoid(output)
+            output = torch.nn.Hardsigmoid()(output)
             # output = torch.tanh(output)
             return output
         else:
@@ -57,7 +76,8 @@ class CNNRNNModel(nn.Module):
             # dodane
             context_step = features.unsqueeze(1)
 
-            var_sigmoid = torch.sigmoid
+            # var_sigmoid = torch.sigmoid
+            var_sigmoid = torch.nn.Hardsigmoid()
             # var_tanh = torch.tanh
             torch_cat = torch.cat
             for _ in range(self.max_series_len):

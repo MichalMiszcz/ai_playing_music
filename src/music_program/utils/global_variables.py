@@ -2,8 +2,10 @@
 # HEIGHT = 172
 # WIDTH = 594
 
-HEIGHT = 416
-WIDTH = 608
+# HEIGHT = 416
+HEIGHT = 512
+# WIDTH = 608
+WIDTH = 512
 
 WHITE_KEYS = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5']
 

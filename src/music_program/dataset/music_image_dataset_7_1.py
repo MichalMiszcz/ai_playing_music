@@ -14,6 +14,8 @@ import mido
 from src.music_program.utils.global_variables import *
 from src.utils.midi_sequence_conversion import normalize_3d_midi_sequence, create_2d_time_series
 
+from torchvision.transforms.functional import to_pil_image
+
 note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
 velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
 delta_time_to_index = {midi_num: i for i, midi_num in enumerate(DELTA_TIME)}
@@ -47,6 +49,7 @@ class MusicImageDataset(Dataset):
         self.image_paths = []
         self.midi_features = {}
         self.midi_time_seq = {}
+        self.midi_sequence = {}
         records_to_remove = []
 
         for folder, subfolder, midi_file in self.selected_midi_files:
@@ -54,6 +57,9 @@ class MusicImageDataset(Dataset):
             midi_key = f"{subfolder}/{midi_name}"
             try:
                 midi_seq = extract_notes_from_midi(midi_file, self.left_hand_tracks, self.right_hand_tracks)
+
+                self.midi_sequence[midi_key] = midi_seq
+
                 if midi_seq is None:
                     records_to_remove.append((folder, subfolder, midi_file))
                     continue
@@ -98,16 +104,33 @@ class MusicImageDataset(Dataset):
     def __getitem__(self, idx):
         img_path = self.image_paths[idx]
 
+        # print(img_path)
+
         rel_path = os.path.relpath(img_path, self.image_root)
         subfolder, piece, _ = rel_path.split(os.sep)
         midi_key = f"{subfolder}/{piece}"
 
-        image = Image.open(img_path).convert('L')
+        # print(midi_key)
+
+        # image = Image.open(img_path).convert('L')
+        image = Image.open(img_path).convert('RGB')
+        # image.show("Image Greyscale")
 
         if self.image_transform:
             image = self.image_transform(image)
+            # image = invert(image)
+            # print(image)
+            # print("Max: ", image.max())
+            # print("Min: ", image.min())
+
+            image_to_show = to_pil_image(image)
+            # image_to_show.show("Modified image")
 
         normalized_series = self.midi_time_seq.get(midi_key)
+
+        # print(normalized_series)
+        # print(self.midi_sequence.get(midi_key))
+
         midi_tensor_series = torch.tensor(normalized_series, dtype=torch.float32)
 
         return image, midi_tensor_series
