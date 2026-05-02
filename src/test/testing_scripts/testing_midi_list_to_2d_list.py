@@ -37,19 +37,24 @@ def create_time_series(midi_seq):
 
 
 def time_series_to_midi_seq(time_series):
+    print(time_series)
+
+    def round_to_list(value, target_list):
+        return min(target_list, key=lambda x: abs(x - value))
+
     time_series = [
         (int(round(norm_note * (NUM_NOTES - 1.0))),
-         int(round(norm_delta_time * (NUM_DELTA_TIME - 1.0))))
+         delta_time_to_index[int(round_to_list((norm_delta_time * MAX_DELTA_TIME), DELTA_TIME))])
         for norm_note, norm_delta_time in time_series
     ]
-    print(time_series)
+    print("index: ", time_series)
 
     time_series = [
         (max(0, min(WHITE_KEYS_MIDI[note], WHITE_KEYS_MIDI[NUM_NOTES - 1])),
          max(0, min(DELTA_TIME[delta_time], DELTA_TIME[NUM_DELTA_TIME - 1])))
         for note, delta_time in time_series
     ]
-    print(time_series)
+    print("value: ", time_series)
 
     midi_seq_from_time_series = []
 
@@ -85,7 +90,7 @@ if "__main__" == __name__:
     # Przygotowanie do uczenia
     time_series, time_series_1d = create_time_series(midi_seq)
     print(time_series)
-    print(time_series_1d)
+    # print(time_series_1d)
 
     index_to_delta_time = {i: midi_num for i, midi_num in enumerate(DELTA_TIME)}
 

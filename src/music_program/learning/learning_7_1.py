@@ -86,7 +86,7 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
     additional_learning_data = {}
 
     model = model.to(device)
-    criterion = torch.nn.HuberLoss(delta=1.0) #LpLoss(1.5) torch.nn.MSELoss() #torch.nn.HuberLoss(delta=1.0)
+    criterion = torch.nn.L1Loss() #LpLoss(1.5) torch.nn.MSELoss() #torch.nn.HuberLoss(delta=1.0)
 
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=lr_patience)

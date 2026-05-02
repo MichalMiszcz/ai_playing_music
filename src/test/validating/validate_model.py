@@ -6,8 +6,8 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import pandas as pd
 
-from src.music_program.model.cnnrnn_model_8 import CNNRNNModel
-from src.music_program.dataset.music_image_dataset_8 import MusicImageDataset
+from src.music_program.model.cnnrnn_model_7_1 import CNNRNNModel
+from src.music_program.dataset.music_image_dataset_7_1 import MusicImageDataset
 from src.test.validating.accuracy import *
 from src.music_program.utils.global_variables import *
 from src.utils import index_to_note_delta_time
@@ -16,7 +16,7 @@ note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
 velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
 delta_time_to_index = {midi_num: i for i, midi_num in enumerate(DELTA_TIME)}
 
-model_path = "src/_models/image_to_midi/model_best_index_v102.pth"
+model_path = "src/_models/image_to_midi/model_best_v310_big_kernel.pth"
 image_root_test = "src/all_data/generated/my_complex_images_test/my_midi_images"
 midi_root_test = "src/all_data/generated/generated_complex_midi_processed_test"
 
@@ -26,20 +26,25 @@ midi_columns = ['midi_note', 'velocity', 'delta_time']
 # image_root_test = "all_data/generated/my_images_test_q/my_midi_images"
 # midi_root_test = "all_data/generated/generated_songs_processed_test_q"
 
+version = 310
+subversion = "big_kernel"
+
 max_seq_len = 96
 max_series_len = int(max_seq_len / 2)
 
-max_midi_files = 10240
-max_midi_files_test = 32
-batch_size=32
-val_batch_size=8
-hidden_dim=512
-rnn_layers=1
+batch_size = 256
+hidden_dim = 1024
+rnn_layers = 2
 
 epochs = 100
 learning_rate = 0.001
 weight_decay = 0.00001
 max_norm = 1.0
+
+version_name = str(version) + '_' + str(subversion) if subversion is not None else str(version)
+print(f'Version name: {version_name}')
+
+max_midi_files_test = 32
 
 left_hand_tracks = ['Piano left', 'Left']
 right_hand_tracks = ['Piano right', 'Right', 'Track 0']
@@ -58,7 +63,7 @@ val_dataloader = DataLoader(val_dataset, shuffle=False, pin_memory=True)
 
 # Loading model
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = CNNRNNModel(input_channels=1, hidden_dim=hidden_dim, output_dim=1, max_seq_len=max_seq_len,
+model = CNNRNNModel(input_channels=1, hidden_dim=hidden_dim, output_dim=2, max_seq_len=max_seq_len,
                     max_series_len=max_series_len, rnn_layers=rnn_layers)
 model.to(device)
 
@@ -85,6 +90,31 @@ def from_raw_to_midi(sequence):
 
     final_predicted_sequence = final_predicted_sequence[:max_seq_len]
     return final_predicted_sequence
+
+def time_series_to_midi_seq(time_series):
+
+    def round_to_list(value, target_list):
+        return min(target_list, key=lambda x: abs(x - value))
+
+    time_series = [
+        (int(round(norm_note * (NUM_NOTES - 1.0))),
+         delta_time_to_index[int(round_to_list((norm_delta_time * MAX_DELTA_TIME), DELTA_TIME))])
+        for norm_note, norm_delta_time in time_series
+    ]
+
+    time_series = [
+        (max(0, min(WHITE_KEYS_MIDI[note], WHITE_KEYS_MIDI[NUM_NOTES - 1])),
+         max(0, min(DELTA_TIME[delta_time], DELTA_TIME[NUM_DELTA_TIME - 1])))
+        for note, delta_time in time_series
+    ]
+
+    midi_seq_from_time_series = []
+
+    for note, time in time_series:
+        midi_seq_from_time_series.append((note, 90, 0))
+        midi_seq_from_time_series.append((note, 0, time))
+
+    return midi_seq_from_time_series
 
 def from_raw_to_midi_index(sequence):
     index_dict = index_to_note_delta_time.index_to_note_delta_time_dict()
@@ -157,6 +187,7 @@ def calculate_measures(predicted_sequence, source_sequence):
 
     print("Predicted:   ", predicted_sequence)
     print("Source:      ", source_sequence)
+    print()
 
     return df_results
 
@@ -172,7 +203,7 @@ def main():
     if model_mode == "scan2notes":
         midi_folder_path = midi_folder_path + "_sorted"
     midi_source_folder_path = "all_data/model_generated/source_midi"
-    csv_file = f"src/csv/notes_stats_{model_mode}_{res}_index.csv"
+    csv_file = f"src/csv/notes_stats_{model_mode}_{res}_index{version_name}.csv"
     max_seq_len = 96
 
     if test_mode == "model":
@@ -189,8 +220,8 @@ def main():
                 midi_batch = midi_batch.tolist()
                 midi_batch = midi_batch[0]
 
-                predicted_midi_seq = from_raw_to_midi_index(predicted_sequence)
-                source_midi_seq = from_raw_to_midi_index(midi_batch)
+                predicted_midi_seq = time_series_to_midi_seq(predicted_sequence)
+                source_midi_seq = time_series_to_midi_seq(midi_batch)
 
                 df_results = calculate_measures(predicted_midi_seq, source_midi_seq)
 
