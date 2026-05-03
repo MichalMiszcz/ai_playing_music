@@ -16,7 +16,7 @@ note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
 velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
 delta_time_to_index = {midi_num: i for i, midi_num in enumerate(DELTA_TIME)}
 
-model_path = "src/_models/image_to_midi/model_best_v310_big_kernel.pth"
+model_path = "src/_models/image_to_midi/model_best_v314_big_kernel.pth"
 image_root_test = "src/all_data/generated/my_complex_images_test/my_midi_images"
 midi_root_test = "src/all_data/generated/generated_complex_midi_processed_test"
 
@@ -26,19 +26,19 @@ midi_columns = ['midi_note', 'velocity', 'delta_time']
 # image_root_test = "all_data/generated/my_images_test_q/my_midi_images"
 # midi_root_test = "all_data/generated/generated_songs_processed_test_q"
 
-version = 310
-subversion = "big_kernel"
-
 max_seq_len = 96
 max_series_len = int(max_seq_len / 2)
 
-batch_size = 256
-hidden_dim = 1024
+version = 314
+subversion = "big_kernel"
+
+batch_size = 32
+hidden_dim = 256
 rnn_layers = 2
 
 epochs = 100
 learning_rate = 0.001
-weight_decay = 0.00001
+weight_decay = 0.0001
 max_norm = 1.0
 
 version_name = str(version) + '_' + str(subversion) if subversion is not None else str(version)
@@ -219,6 +219,9 @@ def main():
                 midi_batch = midi_batch.cpu()
                 midi_batch = midi_batch.tolist()
                 midi_batch = midi_batch[0]
+
+                print(predicted_sequence)
+                print(midi_batch)
 
                 predicted_midi_seq = time_series_to_midi_seq(predicted_sequence)
                 source_midi_seq = time_series_to_midi_seq(midi_batch)
