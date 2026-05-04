@@ -26,10 +26,11 @@ class CNNRNNModel(nn.Module):
         self.note_emb = nn.Embedding(self.num_notes, emb_dim_note)
         self.delta_time_emb = nn.Embedding(self.num_times, emb_dim_delta_time)
 
-        self.cnn = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
-        cnn_resnet_weight = self.cnn.conv1.weight
+        # self.cnn = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
+        self.cnn = models.resnet18(weights=None)
+        # cnn_resnet_weight = self.cnn.conv1.weight
         self.cnn.conv1 = nn.Conv2d(3, 64, kernel_size=76, stride=16, padding=0, bias=False)
-        self.cnn.conv1.weight = cnn_resnet_weight
+        # self.cnn.conv1.weight = cnn_resnet_weight
         self.cnn.fc = nn.Linear(512, hidden_dim)
 
         self.rnn = nn.LSTM(input_size=emb_dim_note + emb_dim_delta_time + hidden_dim, hidden_size=hidden_dim, num_layers=rnn_layers, dropout=0.3, batch_first=True)

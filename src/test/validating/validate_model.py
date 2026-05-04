@@ -6,8 +6,8 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import pandas as pd
 
-from src.music_program.model.cnnrnn_model_7_1 import CNNRNNModel
-from src.music_program.dataset.music_image_dataset_7_1 import MusicImageDataset
+from src.music_program.model.cnnrnn_model_7_2 import CNNRNNModel
+from src.music_program.dataset.music_image_dataset_7_2 import MusicImageDataset
 from src.test.validating.accuracy import *
 from src.music_program.utils.global_variables import *
 from src.utils import index_to_note_delta_time
@@ -16,7 +16,7 @@ note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
 velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
 delta_time_to_index = {midi_num: i for i, midi_num in enumerate(DELTA_TIME)}
 
-model_path = "src/_models/image_to_midi/model_best_v314_big_kernel.pth"
+model_path = "src/_models/image_to_midi/model_best_v3003.pth"
 image_root_test = "src/all_data/generated/my_complex_images_test/my_midi_images"
 midi_root_test = "src/all_data/generated/generated_complex_midi_processed_test"
 
@@ -29,17 +29,14 @@ midi_columns = ['midi_note', 'velocity', 'delta_time']
 max_seq_len = 96
 max_series_len = int(max_seq_len / 2)
 
-version = 314
-subversion = "big_kernel"
+version = 3003
+subversion = None
 
-batch_size = 32
+batch_size = 64
 hidden_dim = 256
+emb_dim_note = 8
+emb_dim_delta_time = 8
 rnn_layers = 2
-
-epochs = 100
-learning_rate = 0.001
-weight_decay = 0.0001
-max_norm = 1.0
 
 version_name = str(version) + '_' + str(subversion) if subversion is not None else str(version)
 print(f'Version name: {version_name}')
@@ -63,12 +60,6 @@ val_dataloader = DataLoader(val_dataset, shuffle=False, pin_memory=True)
 
 # Loading model
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = CNNRNNModel(input_channels=1, hidden_dim=hidden_dim, output_dim=2, max_seq_len=max_seq_len,
-                    max_series_len=max_series_len, rnn_layers=rnn_layers)
-model.to(device)
-
-model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
-model.eval()
 
 
 def from_raw_to_midi(sequence):
@@ -91,8 +82,8 @@ def from_raw_to_midi(sequence):
     final_predicted_sequence = final_predicted_sequence[:max_seq_len]
     return final_predicted_sequence
 
-def time_series_to_midi_seq(time_series):
 
+def time_series_to_midi_seq(time_series):
     def round_to_list(value, target_list):
         return min(target_list, key=lambda x: abs(x - value))
 
@@ -115,6 +106,23 @@ def time_series_to_midi_seq(time_series):
         midi_seq_from_time_series.append((note, 0, time))
 
     return midi_seq_from_time_series
+
+
+def index_to_midi_seq(time_series):
+    time_series = [
+        (max(0, min(WHITE_KEYS_MIDI[note], WHITE_KEYS_MIDI[NUM_NOTES - 1])),
+         max(0, min(DELTA_TIME[delta_time], DELTA_TIME[NUM_DELTA_TIME - 1])))
+        for note, delta_time in time_series
+    ]
+
+    midi_seq_from_time_series = []
+
+    for note, time in time_series:
+        midi_seq_from_time_series.append((note, 90, 0))
+        midi_seq_from_time_series.append((note, 0, time))
+
+    return midi_seq_from_time_series
+
 
 def from_raw_to_midi_index(sequence):
     index_dict = index_to_note_delta_time.index_to_note_delta_time_dict()
@@ -194,7 +202,7 @@ def calculate_measures(predicted_sequence, source_sequence):
 
 def main():
     df_final_results = pd.DataFrame()
-    test_mode = "model"
+    test_mode = "model_embedding"
 
     right_hand_tracks_for_validation = ['Piano right', 'Right', 'Track 0', 'Track', 'Voice']
     model_mode = "my_model"
@@ -207,6 +215,14 @@ def main():
     max_seq_len = 96
 
     if test_mode == "model":
+        model = CNNRNNModel(input_channels=1, hidden_dim=hidden_dim, output_dim=2, max_seq_len=max_seq_len,
+                            max_series_len=max_series_len, rnn_layers=rnn_layers)
+
+        model.to(device)
+
+        model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
+        model.eval()
+
         for i, (images, midi_batch) in enumerate(val_dataloader):
             with torch.no_grad():
                 images = images.to(device)
@@ -227,7 +243,6 @@ def main():
                 source_midi_seq = time_series_to_midi_seq(midi_batch)
 
                 df_results = calculate_measures(predicted_midi_seq, source_midi_seq)
-
                 df_final_results = pd.concat([df_final_results, df_results], ignore_index=True)
 
     elif test_mode == "midi":
@@ -274,6 +289,44 @@ def main():
 
                 print(sequence)
                 print(sequence_source)
+
+    elif test_mode == "model_embedding":
+        model = CNNRNNModel(input_channels=1, hidden_dim=hidden_dim, emb_dim_note=emb_dim_note,
+                            emb_dim_delta_time=emb_dim_delta_time, output_dim=2, max_seq_len=max_seq_len,
+                            max_series_len=max_series_len, rnn_layers=rnn_layers)
+        model.to(device)
+
+        model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
+        model.eval()
+
+        for i, (images, midi_batch) in enumerate(val_dataloader):
+            with torch.no_grad():
+                images = images.to(device)
+                midi_batch = midi_batch.to(device)
+
+                output_notes, output_delta_time = model(images, midi_batch)
+
+                output_notes = output_notes.cpu()
+                output_delta_time = output_delta_time.cpu()
+                output_notes = output_notes.tolist()
+                output_delta_time = output_delta_time.tolist()
+
+                notes = [note_emb.index(max(note_emb)) for note_emb in output_notes[0]]
+                delta_times = [time_emb.index(max(time_emb)) for time_emb in output_delta_time[0]]
+
+                predicted_midi_series = []
+                for i in range(max_series_len):
+                    predicted_midi_series.append((notes[i], delta_times[i]))
+
+                midi_batch = midi_batch.cpu()
+                midi_batch = midi_batch.tolist()
+                midi_batch = midi_batch[0]
+
+                predicted_midi_seq = index_to_midi_seq(predicted_midi_series)
+                source_midi_seq = index_to_midi_seq(midi_batch)
+
+                df_results = calculate_measures(predicted_midi_seq, source_midi_seq)
+                df_final_results = pd.concat([df_final_results, df_results], ignore_index=True)
 
     df_final_results.to_csv(csv_file, index=True)
 

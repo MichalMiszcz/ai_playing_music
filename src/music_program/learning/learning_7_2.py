@@ -18,31 +18,37 @@ from src.music_program.utils.global_variables import *
 from src.music_program.model.cnnrnn_model_7_2 import CNNRNNModel
 from src.music_program.dataset.music_image_dataset_7_2 import MusicImageDataset
 from src.utils.teacher_ratio import count_teacher_ratio
+from src.utils.python_colors import bcolors
 
 # Parametry modelu i uczenia
-version = 3001
+version = 3003
 subversion = None
 
 max_seq_len = 96
 max_series_len = int(max_seq_len / 2)
 
-files = 16
-max_midi_files = files
-max_midi_files_test = files  # 24
-batch_size = files
-hidden_dim = 128
-emb_dim_note = 6
-emb_dim_delta_time = 4
+max_midi_files = 2048
+max_midi_files_test = 256
+batch_size = 4
+hidden_dim = 64
+emb_dim_note = 8
+emb_dim_delta_time = 8
 rnn_layers = 2
 
-epochs = 10
-learning_rate = 0.001
-weight_decay = 0.0000  # 1
+epochs = 100
+learning_rate = 0.01 #0.001
+weight_decay = 0.0001
 max_norm = 1.0
 
-lr_patience = 55
-es_patience = 155
-mixed_teacher_forcing_epochs = [150, 850]
+lr_patience = 5
+es_patience = 15
+mixed_teacher_forcing_epochs = [5, 50]
+
+# lr_patience = 15
+# es_patience = 25
+# mixed_teacher_forcing_epochs = [0, 0]
+
+model_dir = None #'src/_models/image_to_midi/model_best_v3002_1.pth'
 
 version_name = str(version) + '_' + str(subversion) if subversion is not None else str(version)
 print(f'Version name: {version_name}')
@@ -91,7 +97,7 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
     criterion = torch.nn.CrossEntropyLoss()  # LpLoss(1.5) torch.nn.MSELoss() #torch.nn.HuberLoss(delta=1.0)
 
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=lr_patience)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.3, patience=lr_patience)
     # scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=2e-3,
     # steps_per_epoch=len(dataloader), epochs=epochs)
     # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 200, 350, 500], gamma=0.3)
@@ -103,6 +109,8 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
     for epoch in range(epochs):
         model.train()
         total_loss = 0
+        total_note_loss = 0
+        total_time_loss = 0
 
         # epochs_ratio = epoch/epochs
         first_epoch = mixed_teacher_forcing_epochs[0]
@@ -127,15 +135,21 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
 
             optimizer.step()
             total_loss += sum_loss.item()
+            total_note_loss += loss_note.item()
+            total_time_loss += loss_delta_time.item()
 
             # print("loss:", loss.item())
             # if (i + 1) % 128 == 0:
             #     print(f"Epoch {epoch+1}, Batch {i+1}/{len(dataloader)}, Loss: {loss.item():.6f}")
 
         avg_loss = total_loss / len(dataloader)
+        avg_note_loss = total_note_loss / len(dataloader)
+        avg_time_loss = total_time_loss / len(dataloader)
 
         model.eval()
         val_loss = 0
+        total_note_loss = 0
+        total_time_loss = 0
         with torch.no_grad():
             for images, midi_batch in val_dataloader:
                 images, midi_batch = images.to(device, non_blocking=True), midi_batch.to(device, non_blocking=True)
@@ -146,13 +160,17 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
 
                 sum_loss = loss_note + loss_delta_time
 
-                val_loss += sum_loss
+                val_loss += sum_loss.item()
+                total_note_loss += loss_note.item()
+                total_time_loss += loss_delta_time.item()
         val_loss /= len(val_dataloader)
+        val_note_loss = total_note_loss / len(dataloader)
+        val_time_loss = total_time_loss / len(dataloader)
 
         scheduler.step(val_loss)
 
-        print(f"Epoch {epoch + 1}/{epochs}, Average Loss: {avg_loss:.6f}")
-        print(f"Epoch {epoch + 1}/{epochs}, Validation Loss: {val_loss:.6f}")
+        print(f"Epoch {epoch + 1}/{epochs}, Average Loss: {avg_loss:.6f}, Average Note Loss: {avg_note_loss:.6f}, Average Time Loss: {avg_time_loss:.6f}")
+        print(f"Epoch {epoch + 1}/{epochs}, {bcolors.OKBLUE}Validation Loss: {val_loss:.6f}{bcolors.ENDC}, Average Note Loss: {val_note_loss:.6f}, Average Time Loss: {val_time_loss:.6f}")
         learning_data.append((epoch, avg_loss))
         learning_data_val.append((epoch, val_loss))
 
@@ -167,7 +185,7 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
 
             patience_counter = 0
             torch.save(model.state_dict(), f'src/_models/image_to_midi/model_best_v{version_name}.pth')
-            print(f"Model saved as 'src/model_best_v{version_name}.pth'")
+            print(f"Model saved as {bcolors.OKGREEN}'src/model_best_v{version_name}.pth'{bcolors.ENDC}")
         else:
             patience_counter += 1
 
@@ -223,6 +241,13 @@ if __name__ == "__main__":
     model = CNNRNNModel(input_channels=1, hidden_dim=hidden_dim, emb_dim_note=emb_dim_note,
                         emb_dim_delta_time=emb_dim_delta_time, output_dim=2, max_seq_len=max_seq_len,
                         max_series_len=max_series_len, rnn_layers=rnn_layers)
+
+    if model_dir:
+        print("Loading model: ", model_dir)
+        model.load_state_dict(torch.load(model_dir, map_location=device, weights_only=True))
+    else:
+        print("Learning new model")
+
     epochs = epochs
     learning_data, learning_data_val = train_model(model, dataloader, val_dataloader, epochs=epochs, device=device,
                                                    learning_rate=learning_rate, weight_decay=weight_decay,
