@@ -6,8 +6,8 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import pandas as pd
 
-from src.music_program.model.cnnrnn_model_7_2 import CNNRNNModel
-from src.music_program.dataset.music_image_dataset_7_2 import MusicImageDataset
+from src.music_program.model.cnnrnn_model_7_1 import CNNRNNModel
+from src.music_program.dataset.music_image_dataset_7_1 import MusicImageDataset
 from src.test.validating.accuracy import *
 from src.music_program.utils.global_variables import *
 from src.utils import index_to_note_delta_time
@@ -16,7 +16,7 @@ note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
 velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
 delta_time_to_index = {midi_num: i for i, midi_num in enumerate(DELTA_TIME)}
 
-model_path = "src/_models/image_to_midi/model_best_v3003.pth"
+model_path = "src/_models/image_to_midi/model_best_v310_big_kernel.pth"
 image_root_test = "src/all_data/generated/my_complex_images_test/my_midi_images"
 midi_root_test = "src/all_data/generated/generated_complex_midi_processed_test"
 
@@ -29,13 +29,11 @@ midi_columns = ['midi_note', 'velocity', 'delta_time']
 max_seq_len = 96
 max_series_len = int(max_seq_len / 2)
 
-version = 3003
+version = 310
 subversion = None
 
-batch_size = 64
-hidden_dim = 256
-emb_dim_note = 8
-emb_dim_delta_time = 8
+batch_size = 256
+hidden_dim = 1024
 rnn_layers = 2
 
 version_name = str(version) + '_' + str(subversion) if subversion is not None else str(version)
@@ -202,7 +200,7 @@ def calculate_measures(predicted_sequence, source_sequence):
 
 def main():
     df_final_results = pd.DataFrame()
-    test_mode = "model_embedding"
+    test_mode = "model"
 
     right_hand_tracks_for_validation = ['Piano right', 'Right', 'Track 0', 'Track', 'Voice']
     model_mode = "my_model"
@@ -296,7 +294,9 @@ def main():
                             max_series_len=max_series_len, rnn_layers=rnn_layers)
         model.to(device)
 
-        model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
+        # model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
+        checkpoint = torch.load(model_path)
+        model.load_state_dict(checkpoint['model_state_dict'])
         model.eval()
 
         for i, (images, midi_batch) in enumerate(val_dataloader):
@@ -304,7 +304,7 @@ def main():
                 images = images.to(device)
                 midi_batch = midi_batch.to(device)
 
-                output_notes, output_delta_time = model(images, midi_batch)
+                output_notes, output_delta_time = model(images, midi_batch, temperature_note=0.1, temperature_time=0.1)
 
                 output_notes = output_notes.cpu()
                 output_delta_time = output_delta_time.cpu()

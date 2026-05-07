@@ -1,6 +1,6 @@
 """
 Implementacja klasy datasetu podającego midi w formacie wyglądającym w następujący sposób:
-[(64, 20160), (72, 20160), (72, 5040), (65, 10080), (64, 5040), ...]
+[1, 12, 42, 42, 2, ...]
 """
 
 import torch
@@ -112,8 +112,8 @@ class MusicImageDataset(Dataset):
 
         # print(midi_key)
 
-        # image = Image.open(img_path).convert('L')
-        image = Image.open(img_path).convert('RGB')
+        image = Image.open(img_path).convert('L')
+        # image = Image.open(img_path).convert('RGB')
         # image.show("Image Greyscale")
 
         if self.image_transform:

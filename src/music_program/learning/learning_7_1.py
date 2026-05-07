@@ -30,7 +30,7 @@ files = 8
 max_midi_files = files
 max_midi_files_test = files # 24
 batch_size = files
-hidden_dim = 1024
+hidden_dim = 64
 rnn_layers = 2
 
 epochs = 1000

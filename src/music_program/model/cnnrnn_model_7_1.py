@@ -16,15 +16,17 @@ class CNNRNNModel(nn.Module):
         self.max_seq_len = max_seq_len
         self.max_series_len = max_series_len
         self.cnn = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
+        for param in self.cnn.parameters():
+            param.requires_grad = False
         # self.cnn = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
         # self.cnn = models.resnet152(weights=models.ResNet152_Weights.DEFAULT)
 
-        cnn_resnet_weight = self.cnn.conv1.weight
-        self.cnn.conv1 = nn.Conv2d(3, 64, kernel_size=76, stride=16, padding=0, bias=False)
-        self.cnn.conv1.weight = cnn_resnet_weight
+        # self.cnn.conv1 = nn.Conv2d(3, 64, kernel_size=76, stride=16, padding=0, bias=False)
+        self.cnn.conv1 = nn.Conv2d(3, 64, kernel_size=101, stride=24, padding=0, bias=False)
 
         # self.cnn.maxpool = nn.MaxPool2d(kernel_size=1, stride=1, padding=0)
         self.cnn.fc = nn.Linear(512, hidden_dim)
+        
         # self.cnn.fc = nn.Linear(2048, hidden_dim)
 
         self.rnn = nn.LSTM(input_size=output_dim+hidden_dim, hidden_size=hidden_dim, num_layers=rnn_layers, dropout=0.2, batch_first=True)

@@ -30,3 +30,6 @@ def show_teacher_ratio(epochs_number, first_epoch, last_epoch):
     y = [val[1] for val in teacher_ratio_list]
     plt.plot(x, y)
     plt.show()
+
+if __name__ == "__main__":
+    show_teacher_ratio(100, -10, 20)

@@ -2,7 +2,7 @@
 Implementacja uczenia modelu przy jednowymiarowym wyjściu.
 
 Wyjściowa sekwencja wygląda w następujący sposób:
-[(64, 20160), (72, 20160), (72, 5040), (65, 10080), (64, 5040), ...]
+[1, 12, 42, 42, 2, ...]
 """
 
 # Biblioteki
@@ -21,26 +21,26 @@ from src.utils.teacher_ratio import count_teacher_ratio
 from src.utils.python_colors import bcolors
 
 # Parametry modelu i uczenia
-version = 3003
+version = 4000
 subversion = None
 
 max_seq_len = 96
 max_series_len = int(max_seq_len / 2)
 
-max_midi_files = 2048
+max_midi_files = 1024
 max_midi_files_test = 256
-batch_size = 4
-hidden_dim = 64
-emb_dim_note = 8
-emb_dim_delta_time = 8
+batch_size = 16
+hidden_dim = 512
+emb_dim_note = 32
+emb_dim_delta_time = 16
 rnn_layers = 2
 
 epochs = 100
-learning_rate = 0.01 #0.001
+learning_rate = 0.001
 weight_decay = 0.0001
 max_norm = 1.0
 
-lr_patience = 5
+lr_patience = 7
 es_patience = 15
 mixed_teacher_forcing_epochs = [5, 50]
 
@@ -96,8 +96,17 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
     model = model.to(device)
     criterion = torch.nn.CrossEntropyLoss()  # LpLoss(1.5) torch.nn.MSELoss() #torch.nn.HuberLoss(delta=1.0)
 
+    optimizer = optim.AdamW([
+        {'params': model.cnn.parameters(), 'lr': 0.0001},
+        {'params': model.rnn.parameters()},
+        {'params': model.fc_note.parameters()},
+        {'params': model.fc_time.parameters()},
+        {'params': model.note_emb.parameters()},
+        {'params': model.delta_time_emb.parameters()}
+    ], lr=learning_rate, weight_decay=weight_decay)
+
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.3, patience=lr_patience)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=lr_patience)
     # scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=2e-3,
     # steps_per_epoch=len(dataloader), epochs=epochs)
     # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 200, 350, 500], gamma=0.3)
@@ -164,8 +173,8 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
                 total_note_loss += loss_note.item()
                 total_time_loss += loss_delta_time.item()
         val_loss /= len(val_dataloader)
-        val_note_loss = total_note_loss / len(dataloader)
-        val_time_loss = total_time_loss / len(dataloader)
+        val_note_loss = total_note_loss / len(val_dataloader)
+        val_time_loss = total_time_loss / len(val_dataloader)
 
         scheduler.step(val_loss)
 
@@ -220,21 +229,22 @@ if __name__ == "__main__":
     left_hand_tracks = ['Piano left', 'Left']
     right_hand_tracks = ['Piano right', 'Right', 'Track 0']
 
-    dataset = MusicImageDataset(image_root_test, midi_root_test, left_hand_tracks, right_hand_tracks, image_transform,
-                                max_seq_len=max_seq_len, max_series_len=max_series_len, max_midi_files=max_midi_files,
-                                modify_image=False)
-
-    # dataset = MusicImageDataset(image_root, midi_root, left_hand_tracks, right_hand_tracks, image_transform,
+    # dataset = MusicImageDataset(image_root_test, midi_root_test, left_hand_tracks, right_hand_tracks, image_transform,
     #                             max_seq_len=max_seq_len, max_series_len=max_series_len, max_midi_files=max_midi_files,
     #                             modify_image=False)
-    # val_dataset = MusicImageDataset(image_root_test, midi_root_test, left_hand_tracks, right_hand_tracks,
-    #                                 image_transform, max_seq_len=max_seq_len, max_series_len=max_series_len,
-    #                                 max_midi_files=max_midi_files_test, modify_image=False)
+    # dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
+    # val_dataloader = dataloader
+
+    dataset = MusicImageDataset(image_root, midi_root, left_hand_tracks, right_hand_tracks, image_transform,
+                                max_seq_len=max_seq_len, max_series_len=max_series_len, max_midi_files=max_midi_files,
+                                modify_image=False)
+    val_dataset = MusicImageDataset(image_root_test, midi_root_test, left_hand_tracks, right_hand_tracks,
+                                    image_transform, max_seq_len=max_seq_len, max_series_len=max_series_len,
+                                    max_midi_files=max_midi_files_test, modify_image=False)
 
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
-    val_dataloader = dataloader
+    val_dataloader = DataLoader(val_dataset, shuffle=False, pin_memory=True)
 
-    # val_dataloader = DataLoader(val_dataset, shuffle=False, pin_memory=True)
     # dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     # val_dataloader = DataLoader(val_dataset, shuffle=False)
 

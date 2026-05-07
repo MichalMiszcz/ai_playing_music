@@ -2,7 +2,7 @@
 Implementacja modelu obraz-sekwencja o jednowymiarowym wyjściu.
 
 Wyjściowa sekwencja wygląda w następujący sposób:
-[(64, 20160), (72, 20160), (72, 5040), (65, 10080), (64, 5040), ...]
+[1, 12, 42, 42, 2, ...]
 """
 
 import torch
@@ -26,18 +26,23 @@ class CNNRNNModel(nn.Module):
         self.note_emb = nn.Embedding(self.num_notes, emb_dim_note)
         self.delta_time_emb = nn.Embedding(self.num_times, emb_dim_delta_time)
 
-        # self.cnn = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
-        self.cnn = models.resnet18(weights=None)
+        self.cnn = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
+        for param in self.cnn.parameters():
+            param.requires_grad = False
+
+        self.cnn.conv1 = nn.Conv2d(input_channels, 64, kernel_size=76, stride=16, padding=0, bias=False)
+
         # cnn_resnet_weight = self.cnn.conv1.weight
-        self.cnn.conv1 = nn.Conv2d(3, 64, kernel_size=76, stride=16, padding=0, bias=False)
+        # self.cnn.conv1 = nn.Conv2d(3, 64, kernel_size=76, stride=16, padding=0, bias=False)
         # self.cnn.conv1.weight = cnn_resnet_weight
+
         self.cnn.fc = nn.Linear(512, hidden_dim)
 
         self.rnn = nn.LSTM(input_size=emb_dim_note + emb_dim_delta_time + hidden_dim, hidden_size=hidden_dim, num_layers=rnn_layers, dropout=0.3, batch_first=True)
         self.fc_note = nn.Linear(hidden_dim, self.num_notes)
         self.fc_time = nn.Linear(hidden_dim, self.num_times)
 
-    def forward(self, x, target=None, teacher_ratio=None, temperature=1.0):
+    def forward(self, x, target=None, teacher_ratio=None, temperature_note=1.0, temperature_time=1.0):
         batch_size = x.size(0)
 
         features = self.cnn(x).view(batch_size, -1)
@@ -82,8 +87,8 @@ class CNNRNNModel(nn.Module):
                 note_logits_seq.append(note_logits)
                 time_logits_seq.append(time_logits)
 
-                note_probs = torch.softmax(note_logits.squeeze(1) / temperature, dim=-1)
-                time_probs = torch.softmax(time_logits.squeeze(1) / temperature, dim=-1)
+                note_probs = torch.softmax(note_logits.squeeze(1) / temperature_note, dim=-1)
+                time_probs = torch.softmax(time_logits.squeeze(1) / temperature_time, dim=-1)
 
                 next_note = torch.multinomial(note_probs, 1)
                 next_time = torch.multinomial(time_probs, 1)
