@@ -10,6 +10,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 from torchvision.transforms import v2
 
+from src.music_program.learning import params_dict
 from src.music_program.utils.global_variables import *
 
 from src.music_program.model.cnn_model_v10 import MusicModel
@@ -18,27 +19,27 @@ from src.utils.python_colors import bcolors
 from src.utils.teacher_ratio import count_teacher_ratio
 
 # Parametry modelu i uczenia
-version = 5001
-subversion = None
-
+version = 6001
+# subversion = None
+#
 max_seq_len = 64
 max_series_len = int(max_seq_len / 2)
-
-max_midi_files = 4096
-max_midi_files_test = 1024
-batch_size = 16
-features_number = 64
+#
+# max_midi_files = 4096
+# max_midi_files_test = 1024
+# batch_size = 16
+# features_number = 8
 
 epochs = 100
-learning_rate = 0.0001
+# learning_rate = 0.0001
 weight_decay = 0.00001
 max_norm = 1.0
 
-lr_patience = 10
-es_patience = 15
+lr_patience = 100
+es_patience = 155
 
-version_name = str(version) + '_' + str(subversion) if subversion is not None else str(version)
-print(f'Version name: {version_name}')
+# version_name = str(version) + '_' + str(subversion) if subversion is not None else str(version)
+# print(f'Version name: {version_name}')
 
 image_root = "src/all_data/generated/my_complex_images/my_midi_images"
 midi_root = "src/all_data/generated/generated_complex_midi_processed"
@@ -82,6 +83,7 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
     patience = es_patience
     patience_counter = 0
 
+    last_ep = 0
     for epoch in range(epochs):
         model.train()
         total_loss = 0
@@ -97,6 +99,8 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
             # print("Output:", output)
             # print("Midi shape:", midi_batch.shape)
             # print("Midi:", midi_batch)
+            # print(output)
+            # print(midi_batch)
 
             loss = criterion(output, midi_batch)
             loss.backward()
@@ -142,13 +146,13 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
         else:
             patience_counter += 1
 
+        last_ep = epoch + 1
         if patience_counter >= patience:
             print(f"Early stopping at epoch {epoch + 1}")
             additional_learning_data['last_val_loss'] = val_loss
-            additional_learning_data['last_epoch'] = epoch + 1
             break
 
-    additional_learning_data['last_epoch'] = epochs
+    additional_learning_data['last_epoch'] = last_ep
     return learning_data, learning_data_val, additional_learning_data
 
 
@@ -170,32 +174,43 @@ def generate_chart(data, title):
 
 # Uruchomienie uczenia
 if __name__ == "__main__":
-    left_hand_tracks = ['Piano left', 'Left']
-    right_hand_tracks = ['Piano right', 'Right', 'Track 0']
+    params_dictionary = params_dict
+    for params in params_dictionary.params_dict:
+        subversion = params['subversion']
+        max_midi_files = params['max_midi_files']
+        max_midi_files_test = params['max_midi_files_test']
+        batch_size = params['batch_size']
+        features_number = params['features_number']
+        learning_rate = params['learning_rate']
 
-    dataset = MusicImageDataset(image_root, midi_root, left_hand_tracks, right_hand_tracks, image_transform,
-                                max_seq_len=max_seq_len, max_series_len=max_series_len, max_midi_files=max_midi_files,
-                                modify_image=False)
-    val_dataset = MusicImageDataset(image_root_test, midi_root_test, left_hand_tracks, right_hand_tracks,
-                                    image_transform, max_seq_len=max_seq_len, max_series_len=max_series_len,
-                                    max_midi_files=max_midi_files_test, modify_image=False)
+        version_name = str(version) + '_' + str(subversion) if subversion is not None else str(version)
+        print(f'Version name: {version_name}')
 
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
-    val_dataloader = DataLoader(val_dataset, shuffle=False, pin_memory=True)
-    # val_dataloader = dataloader
+        left_hand_tracks = ['Piano left', 'Left']
+        right_hand_tracks = ['Piano right', 'Right', 'Track 0']
 
-    # dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-    # val_dataloader = DataLoader(val_dataset, shuffle=False)
+        dataset = MusicImageDataset(image_root, midi_root, left_hand_tracks, right_hand_tracks, image_transform,
+                                    max_seq_len=max_seq_len, max_series_len=max_series_len, max_midi_files=max_midi_files,
+                                    modify_image=False)
+        val_dataset = MusicImageDataset(image_root_test, midi_root_test, left_hand_tracks, right_hand_tracks,
+                                        image_transform, max_seq_len=max_seq_len, max_series_len=max_series_len,
+                                        max_midi_files=max_midi_files_test, modify_image=False)
 
-    model = MusicModel(features_number, max_series_len)
-    epochs = epochs
-    learning_data, learning_data_val, additional_learning_data = train_model(model, dataloader, val_dataloader, epochs=epochs, device=device,
-                                                   learning_rate=learning_rate, weight_decay=weight_decay,
-                                                   lr_patience=lr_patience, es_patience=es_patience)
+        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
+        val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, pin_memory=True)
+        # val_dataloader = dataloader
 
-    print(additional_learning_data)
-    additional_learning_data_pd = pd.DataFrame.from_dict(additional_learning_data, orient="index", columns=["Value"])
-    additional_learning_data_pd.to_csv(f'src/csv/additional_learning_data_v{version_name}.csv')
+        # dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        # val_dataloader = DataLoader(val_dataset, shuffle=False)
 
-    generate_chart(learning_data, 'Training Loss over Epochs')
-    generate_chart(learning_data_val, 'Validation Loss over Epochs')
+        model = MusicModel(features_number, max_series_len)
+        epochs = epochs
+        learning_data, learning_data_val, additional_learning_data = train_model(model, dataloader, val_dataloader, epochs=epochs, device=device,
+                                                       learning_rate=learning_rate, weight_decay=weight_decay,
+                                                       lr_patience=lr_patience, es_patience=es_patience)
+
+        additional_learning_data_pd = pd.DataFrame.from_dict(additional_learning_data, orient="index", columns=["Value"])
+        additional_learning_data_pd.to_csv(f'src/csv/additional_learning_data_v{version_name}.csv')
+
+        generate_chart(learning_data, 'Training Loss over Epochs')
+        generate_chart(learning_data_val, 'Validation Loss over Epochs')
