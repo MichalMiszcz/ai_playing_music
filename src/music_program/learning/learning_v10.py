@@ -19,7 +19,7 @@ from src.utils.python_colors import bcolors
 from src.utils.teacher_ratio import count_teacher_ratio
 
 # Parametry modelu i uczenia
-version = 6001
+version = 701
 # subversion = None
 #
 max_seq_len = 64
@@ -35,8 +35,8 @@ epochs = 100
 weight_decay = 0.00001
 max_norm = 1.0
 
-lr_patience = 100
-es_patience = 155
+lr_patience = 7
+es_patience = 15
 
 # version_name = str(version) + '_' + str(subversion) if subversion is not None else str(version)
 # print(f'Version name: {version_name}')
@@ -57,7 +57,7 @@ image_transform = v2.Compose([
     v2.ToImage(),
     v2.ToDtype(torch.float32, scale=True),
     # v2.RandomInvert(p=1.0),
-    # v2.RandomAdjustSharpness(sharpness_factor=2.0, p=1.0)
+    # v2.RandomAdjustSharpness(sharpness_factor=2.0, p=0.5)
 ])
 
 
@@ -74,7 +74,7 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
     criterion = torch.nn.HuberLoss(delta=1.0)  # LpLoss(1.5) torch.nn.MSELoss() #torch.nn.HuberLoss(delta=1.0)
 
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=lr_patience)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=lr_patience)
     # scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=2e-3,
     # steps_per_epoch=len(dataloader), epochs=epochs)
     # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 200, 350, 500], gamma=0.3)
@@ -101,6 +101,9 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
             # print("Midi:", midi_batch)
             # print(output)
             # print(midi_batch)
+
+            # print(output.shape)
+            # print(midi_batch.shape)
 
             loss = criterion(output, midi_batch)
             loss.backward()
@@ -150,6 +153,7 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
         if patience_counter >= patience:
             print(f"Early stopping at epoch {epoch + 1}")
             additional_learning_data['last_val_loss'] = val_loss
+            additional_learning_data['last_loss'] = avg_loss
             break
 
     additional_learning_data['last_epoch'] = last_ep
@@ -181,6 +185,7 @@ if __name__ == "__main__":
         max_midi_files_test = params['max_midi_files_test']
         batch_size = params['batch_size']
         features_number = params['features_number']
+        linear_dim = params['linear_dim']
         learning_rate = params['learning_rate']
 
         version_name = str(version) + '_' + str(subversion) if subversion is not None else str(version)
@@ -203,7 +208,7 @@ if __name__ == "__main__":
         # dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
         # val_dataloader = DataLoader(val_dataset, shuffle=False)
 
-        model = MusicModel(features_number, max_series_len)
+        model = MusicModel(features_number, linear_dim, max_series_len)
         epochs = epochs
         learning_data, learning_data_val, additional_learning_data = train_model(model, dataloader, val_dataloader, epochs=epochs, device=device,
                                                        learning_rate=learning_rate, weight_decay=weight_decay,

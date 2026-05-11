@@ -138,6 +138,44 @@ class MusicImageDataset(Dataset):
 
         return image, midi_tensor_series
 
+    def create_time_series(self, midi_seq):
+        time_series = []
+        current_note = None
+
+        def make_indexes(note_idx, delta_time_idx):
+            index = delta_time_idx + (NUM_DELTA_TIME - 1) * note_idx
+            return index
+
+        for row in midi_seq:
+            note = row[0]
+            velocity = row[1]
+            delta_time = row[2]
+
+            if velocity > 0:
+                current_note = note
+            else:
+                if current_note is not None:
+                    time_series.append(make_indexes(note, delta_time))
+                    current_note = None
+
+        if len(time_series) < self.max_series_len:
+            time_series.extend([0] * (self.max_series_len - len(time_series)))
+
+        return time_series
+
+
+# def modify_image_opencv(image_array, angle, x_shift, y_shift):
+#     (h, w) = image_array.shape[:2]
+#     center = (w // 2, h // 2)
+#
+#     matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+#
+#     matrix[0, 2] += x_shift
+#     matrix[1, 2] += y_shift
+#
+#     rotated = cv2.warpAffine(image_array, matrix, (w, h), borderValue=(255, 255, 255))
+#     return rotated
+
 def extract_notes_from_midi(midi_path, left_hand_tracks, right_hand_tracks, max_midi_duration):
     try:
         mid = mido.MidiFile(midi_path)
