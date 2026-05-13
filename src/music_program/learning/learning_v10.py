@@ -19,11 +19,11 @@ from src.utils.python_colors import bcolors
 from src.utils.teacher_ratio import count_teacher_ratio
 
 # Parametry modelu i uczenia
-version = 701
+version = 800
 # subversion = None
 #
 max_seq_len = 64
-max_series_len = int(max_seq_len / 2)
+max_series_len = 16 #int(max_seq_len / 2)
 #
 # max_midi_files = 4096
 # max_midi_files_test = 1024
@@ -32,7 +32,7 @@ max_series_len = int(max_seq_len / 2)
 
 epochs = 100
 # learning_rate = 0.0001
-weight_decay = 0.00001
+weight_decay = 0.0001
 max_norm = 1.0
 
 lr_patience = 7
@@ -71,7 +71,8 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
     additional_learning_data = {}
 
     model = model.to(device)
-    criterion = torch.nn.HuberLoss(delta=1.0)  # LpLoss(1.5) torch.nn.MSELoss() #torch.nn.HuberLoss(delta=1.0)
+    # criterion = torch.nn.HuberLoss(delta=1.0)  # LpLoss(1.5) torch.nn.MSELoss() #torch.nn.HuberLoss(delta=1.0)
+    criterion = torch.nn.CrossEntropyLoss()
 
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=lr_patience)
@@ -105,7 +106,7 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
             # print(output.shape)
             # print(midi_batch.shape)
 
-            loss = criterion(output, midi_batch)
+            loss = criterion(output.reshape(-1, 9), midi_batch.reshape(-1))
             loss.backward()
 
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=max_norm)
@@ -124,7 +125,7 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
 
                 output = model(images)
 
-                val_loss += criterion(output, midi_batch).item()
+                val_loss += criterion(output.reshape(-1, 9), midi_batch.reshape(-1)).item()
         val_loss /= len(val_dataloader)
 
         scheduler.step(val_loss)
@@ -185,7 +186,7 @@ if __name__ == "__main__":
         max_midi_files_test = params['max_midi_files_test']
         batch_size = params['batch_size']
         features_number = params['features_number']
-        linear_dim = params['linear_dim']
+        hidden_dim = params['hidden_dim']
         learning_rate = params['learning_rate']
 
         version_name = str(version) + '_' + str(subversion) if subversion is not None else str(version)
@@ -208,7 +209,8 @@ if __name__ == "__main__":
         # dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
         # val_dataloader = DataLoader(val_dataset, shuffle=False)
 
-        model = MusicModel(features_number, linear_dim, max_series_len)
+        model = MusicModel(features_number, hidden_dim, max_series_len)
+
         epochs = epochs
         learning_data, learning_data_val, additional_learning_data = train_model(model, dataloader, val_dataloader, epochs=epochs, device=device,
                                                        learning_rate=learning_rate, weight_decay=weight_decay,

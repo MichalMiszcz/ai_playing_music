@@ -31,8 +31,7 @@ output = [0.7143, 0.2857, 0.0000, 0.5714, 0.2857, 0.1429, 0.2857, 0.5714, 0.1429
 target = torch.Tensor(target)
 output = torch.Tensor(output)
 
-criterion = torch.nn.HuberLoss(
-    delta=1.0)  # torch.nn.L1Loss torch.nn.HuberLoss(delta=1.0) LpLoss(1.5) torch.nn.MSELoss()
+criterion = torch.nn.HuberLoss(delta=1.0)  # torch.nn.L1Loss torch.nn.HuberLoss(delta=1.0) LpLoss(1.5) torch.nn.MSELoss()
 
 loss = criterion(output, target)
 print(loss)

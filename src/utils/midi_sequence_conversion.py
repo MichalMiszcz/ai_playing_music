@@ -43,7 +43,7 @@ def create_2d_time_series(midi_seq, max_series_len):
                 current_note = None
 
     if len(time_series) < max_series_len:
-        time_series.extend([(-1, 0)] * (max_series_len - len(time_series)))
+        time_series.extend([(NUM_NOTES, 0)] * (max_series_len - len(time_series)))
 
     return time_series
 

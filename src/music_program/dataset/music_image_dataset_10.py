@@ -15,6 +15,8 @@ from src.music_program.utils.global_variables import *
 from src.utils import index_to_note_delta_time
 from src.utils.midi_sequence_conversion import normalize_3d_midi_sequence, create_2d_time_series
 
+from collections import Counter
+
 note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
 velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
 delta_time_to_index = {midi_num: i for i, midi_num in enumerate(DELTA_TIME)}
@@ -53,6 +55,8 @@ class MusicImageDataset(Dataset):
         self.midi_time_seq = {}
         records_to_remove = []
 
+        self.lengths_of_midis = []
+
         for folder, author, midi_file in self.selected_midi_files:
             midi_name = os.path.splitext(os.path.basename(midi_file))[0]
             midi_key = f"{author}/{midi_name}"
@@ -63,16 +67,22 @@ class MusicImageDataset(Dataset):
                     continue
                 if len(midi_seq) > self.max_seq_len:
                     midi_seq = midi_seq[:self.max_seq_len]
-                else:
-                    midi_seq += [(0, 0, 0)] * (self.max_seq_len - len(midi_seq))
+                # else:
+                #     midi_seq += [(0, 0, 0)] * (self.max_seq_len - len(midi_seq))
 
-                normalized_seq = normalize_3d_midi_sequence(midi_seq)
-                self.midi_features[midi_key] = normalized_seq
-                self.midi_time_seq[midi_key] = create_2d_time_series(normalized_seq, self.max_series_len)
+                if len(midi_seq) > 32:
+                    raise Exception
+
+                # normalized_seq = normalize_3d_midi_sequence(midi_seq)
+                self.midi_features[midi_key] = midi_seq
+                self.midi_time_seq[midi_key] = create_2d_time_series(midi_seq, self.max_series_len)
+
                 self.midi_time_seq[midi_key] = [note for note, _ in self.midi_time_seq[midi_key]]
 
+                # self.lengths_of_midis.append(len(self.midi_time_seq[midi_key]))
+
             except Exception as e:
-                print(f"Error processing MIDI {midi_file}: {e}")
+                # print(f"Error processing MIDI {midi_file}: {e}")
                 records_to_remove.append((folder, author, midi_file))
                 continue
 
@@ -97,6 +107,9 @@ class MusicImageDataset(Dataset):
 
         if len(self.image_paths) == 0:
             raise ValueError("No images found for the selected MIDI files. Check directory paths and file structure.")
+
+        # counter = Counter(self.lengths_of_midis)
+        # print(counter)
 
     def __len__(self):
         return len(self.image_paths)
@@ -134,7 +147,7 @@ class MusicImageDataset(Dataset):
             # image_to_show.show("Modified image")
 
         normalized_seq = self.midi_time_seq.get(midi_key)
-        midi_tensor_series = torch.tensor(normalized_seq, dtype=torch.float32)
+        midi_tensor_series = torch.tensor(normalized_seq, dtype=torch.long)
 
         return image, midi_tensor_series
 
