@@ -29,8 +29,8 @@ midi_columns = ['midi_note', 'velocity', 'delta_time']
 
 
 
-version = 700
-subversion = 8
+version = 800
+subversion = 9
 
 max_seq_len = 64
 max_series_len = 16

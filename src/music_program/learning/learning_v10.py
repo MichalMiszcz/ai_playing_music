@@ -28,6 +28,7 @@ max_series_len = 16 #int(max_seq_len / 2)
 # max_midi_files = 4096
 # max_midi_files_test = 1024
 # batch_size = 16
+val_batch_size = 512
 # features_number = 8
 
 epochs = 100
@@ -53,11 +54,11 @@ print(f"Using device: {device}")
 image_transform = v2.Compose([
     v2.Resize((HEIGHT, WIDTH)),
     # v2.RandomAffine(degrees=1, shear=0),
-    # v2.ColorJitter(brightness=0.2, contrast=0.2),
+    v2.ColorJitter(brightness=0.2, contrast=0.2),
     v2.ToImage(),
     v2.ToDtype(torch.float32, scale=True),
     # v2.RandomInvert(p=1.0),
-    # v2.RandomAdjustSharpness(sharpness_factor=2.0, p=0.5)
+    v2.RandomAdjustSharpness(sharpness_factor=2.0, p=0.5)
 ])
 
 
@@ -203,7 +204,7 @@ if __name__ == "__main__":
                                         max_midi_files=max_midi_files_test, modify_image=False)
 
         dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
-        val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, pin_memory=True)
+        val_dataloader = DataLoader(val_dataset, batch_size=val_batch_size, shuffle=False, pin_memory=True)
         # val_dataloader = dataloader
 
         # dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)

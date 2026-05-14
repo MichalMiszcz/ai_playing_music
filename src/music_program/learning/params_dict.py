@@ -10,13 +10,13 @@ params_dict = [
     #     'learning_rate': 0.00001
     # }
     {
-        'subversion': 8,
+        'subversion': 101,
         'max_midi_files': 20480,
         'max_midi_files_test': 8192,
         'batch_size': 2,
-        'features_number': 64,
-        'hidden_dim': 64,
-        'learning_rate': 0.0001
+        'features_number': 16,
+        'hidden_dim': 32,
+        'learning_rate': 0.0005
     },
     # {
     #     'subversion': 3,
