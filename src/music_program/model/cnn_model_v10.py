@@ -12,6 +12,10 @@ kernel_y = int(HEIGHT / 3)
 kernel_x = int(WIDTH / 32)
 stride = kernel_x // 3
 
+# kernel_y = int(HEIGHT / 8)
+# kernel_x = int(WIDTH / 32)
+# stride = kernel_x // 3
+
 
 class MusicModel(nn.Module):
     def __init__(self, features_number, hidden_dim, max_series_len):
@@ -20,8 +24,8 @@ class MusicModel(nn.Module):
         self.features_number = features_number
 
         out_channels = features_number
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=out_channels, kernel_size=(kernel_y, kernel_x),
-                               stride=stride, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=out_channels, kernel_size=7,
+                               stride=3, padding=1)
         self.bn1 = nn.BatchNorm2d(out_channels)
 
         out_channels = out_channels * 2
@@ -29,12 +33,28 @@ class MusicModel(nn.Module):
                                padding=1)
         self.bn2 = nn.BatchNorm2d(out_channels)
 
+        out_channels = out_channels * 2
+        self.conv3 = nn.Conv2d(in_channels=int(out_channels / 2), out_channels=out_channels, kernel_size=3, stride=1,
+                               padding=1)
+        self.bn3 = nn.BatchNorm2d(out_channels)
+
+        out_channels = out_channels * 2
+        self.conv4 = nn.Conv2d(in_channels=int(out_channels / 2), out_channels=out_channels, kernel_size=3, stride=1,
+                               padding=1)
+        self.bn4 = nn.BatchNorm2d(out_channels)
+
         self.relu = nn.ReLU(inplace=True)
-        self.max_pool = nn.MaxPool2d(kernel_size=(1, 2))
-        self.adaptive_max_pool = nn.AdaptiveMaxPool2d((1, self.max_series_len))
-        self.fc = nn.Linear(out_channels * self.max_series_len, 512)
-        self.fc_1 = nn.Linear(512, hidden_dim * 2)
-        self.fc_2 = nn.Linear(hidden_dim * 2, hidden_dim)
+        self.max_pool = nn.MaxPool2d(kernel_size=(2, 2))
+        self.adaptive_max_pool = nn.AdaptiveMaxPool2d((1, self.max_series_len * 8))
+
+        self.fc_shrink = nn.Linear(self.max_series_len * 8, self.max_series_len)
+
+        self.fc = nn.Linear(out_channels * self.max_series_len, 256)
+        self.fc_1 = nn.Linear(256, hidden_dim)
+        # self.fc_2 = nn.Linear(hidden_dim * 4, hidden_dim * 2)
+        # self.fc_3 = nn.Linear(hidden_dim * 2, hidden_dim)
+
+        self.dropout = nn.Dropout(p=0.5)
 
         self.model_head = nn.Sequential(
             nn.Linear(hidden_dim, max_series_len * 9),
@@ -51,18 +71,34 @@ class MusicModel(nn.Module):
         x = self.bn2(x)
         x = self.relu(x)
 
+        x = self.conv3(x)
+        x = self.bn3(x)
+        x = self.relu(x)
+
+        x = self.conv4(x)
+        x = self.bn4(x)
+        x = self.relu(x)
+
         x = self.adaptive_max_pool(x)
+
+        x = x.squeeze(2)
+        x = self.fc_shrink(x)
 
         x = torch.flatten(x, 1)
 
         x = self.fc(x)
         x = self.relu(x)
 
+        x = self.dropout(x)
+
         x = self.fc_1(x)
         x = self.relu(x)
-
-        x = self.fc_2(x)
-        x = self.relu(x)
+        #
+        # x = self.fc_2(x)
+        # x = self.relu(x)
+        #
+        # x = self.fc_3(x)
+        # x = self.relu(x)
 
         x = self.model_head(x)
 

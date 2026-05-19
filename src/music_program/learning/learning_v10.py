@@ -3,9 +3,14 @@ Uczenie modelu bazującego na sieci konwolucyjnej. Dane uczące to obrazy zawier
 """
 # Biblioteki
 import pandas as pd
+import time
+from PIL import Image
+from torchvision.transforms.v2.functional import to_pil_image
+
 import torch
 import torch.optim as optim
 from matplotlib import pyplot as plt
+from matplotlib.ticker import MaxNLocator
 from torch import nn
 from torch.utils.data import DataLoader
 from torchvision.transforms import v2
@@ -19,6 +24,8 @@ from src.utils.python_colors import bcolors
 from src.utils.teacher_ratio import count_teacher_ratio
 
 # Parametry modelu i uczenia
+model_dir = None #'src/_models/image_to_midi/model_best_v800_001_checkpoint.pth'
+
 version = 800
 # subversion = None
 #
@@ -33,11 +40,11 @@ val_batch_size = 512
 
 epochs = 100
 # learning_rate = 0.0001
-weight_decay = 0.0001
+weight_decay = 0.00001
 max_norm = 1.0
 
-lr_patience = 7
-es_patience = 15
+lr_patience = 6
+es_patience = 25
 
 # version_name = str(version) + '_' + str(subversion) if subversion is not None else str(version)
 # print(f'Version name: {version_name}')
@@ -54,12 +61,46 @@ print(f"Using device: {device}")
 image_transform = v2.Compose([
     v2.Resize((HEIGHT, WIDTH)),
     # v2.RandomAffine(degrees=1, shear=0),
-    v2.ColorJitter(brightness=0.2, contrast=0.2),
+    v2.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
     v2.ToImage(),
     v2.ToDtype(torch.float32, scale=True),
-    # v2.RandomInvert(p=1.0),
+    v2.RandomInvert(p=0.4),
     v2.RandomAdjustSharpness(sharpness_factor=2.0, p=0.5)
 ])
+
+image_validation_transform = v2.Compose([
+    v2.Resize((HEIGHT, WIDTH)),
+    # v2.RandomAffine(degrees=1, shear=0),
+    # v2.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+    v2.ToImage(),
+    v2.ToDtype(torch.float32, scale=True),
+    # v2.RandomInvert(p=0.5),
+    # v2.RandomAdjustSharpness(sharpness_factor=2.0, p=0.5)
+])
+
+
+def checkpoint(model_to_save, optimizer, scheduler, epoch, val_loss, filename):
+    torch.save(model_to_save.state_dict(), filename)
+    torch.save({
+            'epoch': epoch,
+            'model_state_dict': model_to_save.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'scheduler_state_dict': scheduler.state_dict(),
+            'val_loss': val_loss,
+            }, filename)
+
+def resume(model_to_load_to, optimizer, scheduler, filename):
+    checkpoint = torch.load(filename)
+    model_to_load_to.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+    epoch = checkpoint['epoch']
+    loss = checkpoint['val_loss']
+
+    print(f"Previous best epoch: {epoch}")
+    print(f"Previous best validation loss: {loss}")
+
+    return epoch, loss
 
 
 # Uczenie modelu
@@ -76,21 +117,32 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
     criterion = torch.nn.CrossEntropyLoss()
 
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=lr_patience)
-    # scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=2e-3,
-    # steps_per_epoch=len(dataloader), epochs=epochs)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.2, patience=lr_patience)
+    # scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=learning_rate, steps_per_epoch=len(dataloader), epochs=epochs)
     # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 200, 350, 500], gamma=0.3)
+
+    # Loading existing model
+    if model_dir:
+        print("Loading model: ", model_dir)
+        resume(model, optimizer, scheduler, model_dir)
+    else:
+        print("Learning new model")
 
     best_val_loss = float("inf")
     patience = es_patience
     patience_counter = 0
-
     last_ep = 0
+
+    start = time.asctime()
+    print()
+    print(f'Start time: {start}')
+    print('─' * 100)
+
     for epoch in range(epochs):
         model.train()
         total_loss = 0
 
-        for i, (images, midi_batch) in enumerate(dataloader):
+        for i, (images, midi_batch, img_path, midi_key) in enumerate(dataloader):
             images = images.to(device, non_blocking=True)
             midi_batch = midi_batch.to(device, non_blocking=True)
 
@@ -113,6 +165,8 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=max_norm)
 
             optimizer.step()
+            # scheduler.step() # OneCycleLR
+
             total_loss += loss.item()
 
         avg_loss = total_loss / len(dataloader)
@@ -120,7 +174,7 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
         model.eval()
         val_loss = 0
         with torch.no_grad():
-            for images, midi_batch in val_dataloader:
+            for images, midi_batch, _, _ in val_dataloader:
                 images = images.to(device, non_blocking=True)
                 midi_batch = midi_batch.to(device, non_blocking=True)
 
@@ -146,8 +200,9 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
             additional_learning_data['best_epoch'] = epoch + 1
 
             patience_counter = 0
-            torch.save(model.state_dict(), f'src/_models/image_to_midi/model_best_v{version_name}.pth')
-            print(f"Model saved as {bcolors.OKGREEN}'src/model_best_v{version_name}.pth'{bcolors.ENDC}")
+            # torch.save(model.state_dict(), f'src/_models/image_to_midi/model_best_v{version_name}.pth')
+            checkpoint(model, optimizer, scheduler, epoch + 1, val_loss, f'src/_models/image_to_midi/model_best_v{version_name}_checkpoint.pth')
+            print(f"Model saved as {bcolors.OKGREEN}'src/_models/image_to_midi/model_best_v{version_name}.pth'{bcolors.ENDC}")
         else:
             patience_counter += 1
 
@@ -158,25 +213,46 @@ def train_model(model, dataloader, val_dataloader, epochs=50, device=device, lea
             additional_learning_data['last_loss'] = avg_loss
             break
 
+        if (epoch + 1) % 10 == 0:
+            generate_chart(learning_data, f'Training Loss over Epochs', epoch + 1)
+            generate_chart(learning_data_val, f'Validation Loss over Epochs', epoch + 1)
+
+    end = time.asctime()
+    print('─' * 100)
+    print(f'End time: {end}')
+
+    additional_learning_data['start_time'] = start
+    additional_learning_data['end_time'] = end
+
     additional_learning_data['last_epoch'] = last_ep
     return learning_data, learning_data_val, additional_learning_data
 
 
 # Generowanie wykresu
-def generate_chart(data, title):
+def generate_chart(data, title, epoch = None, mode = "save"):
+    name = title
+    if epoch is not None:
+        title = title + f" - epoch {epoch}"
+
     epochs = [t[0] for t in data]
     avg_losses = [t[1] for t in data]
 
     plt.figure(figsize=(8, 5))
+    ax = plt.gca()
     plt.plot(epochs, avg_losses, marker='o', linestyle='-', color='blue')
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+
     plt.xlabel('Epoch')
     plt.ylabel('Average Loss')
     plt.title(title)
     plt.grid(True)
     plt.tight_layout()
-    # plt.show()
-    plt.savefig(f'src/plots/{title}_v{version_name}.png')
+    plt.savefig(f'src/plots/{name}_v{version_name}.png')
+    plt.close()
 
+    if mode == "show":
+        img = Image.open(f'src/plots/{title}_v{version_name}.png')
+        img.show()
 
 # Uruchomienie uczenia
 if __name__ == "__main__":
@@ -200,7 +276,7 @@ if __name__ == "__main__":
                                     max_seq_len=max_seq_len, max_series_len=max_series_len, max_midi_files=max_midi_files,
                                     modify_image=False)
         val_dataset = MusicImageDataset(image_root_test, midi_root_test, left_hand_tracks, right_hand_tracks,
-                                        image_transform, max_seq_len=max_seq_len, max_series_len=max_series_len,
+                                        image_validation_transform, max_seq_len=max_seq_len, max_series_len=max_series_len,
                                         max_midi_files=max_midi_files_test, modify_image=False)
 
         dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, pin_memory=True)

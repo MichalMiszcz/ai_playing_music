@@ -149,7 +149,7 @@ class MusicImageDataset(Dataset):
         normalized_seq = self.midi_time_seq.get(midi_key)
         midi_tensor_series = torch.tensor(normalized_seq, dtype=torch.long)
 
-        return image, midi_tensor_series
+        return image, midi_tensor_series, img_path, midi_key
 
 def extract_notes_from_midi(midi_path, left_hand_tracks, right_hand_tracks, max_midi_duration):
     try:
