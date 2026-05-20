@@ -45,16 +45,12 @@ class MusicModel(nn.Module):
 
         self.relu = nn.ReLU(inplace=True)
         self.max_pool = nn.MaxPool2d(kernel_size=(2, 2))
-        self.adaptive_max_pool = nn.AdaptiveMaxPool2d((1, self.max_series_len * 8))
 
-        self.fc_shrink = nn.Linear(self.max_series_len * 8, self.max_series_len)
+        self.fc = nn.Linear(out_channels * 7 * 21, 1024)
+        self.fc_1 = nn.Linear(1024, 256)
+        self.fc_2 = nn.Linear(256, hidden_dim)
 
-        self.fc = nn.Linear(out_channels * self.max_series_len, 256)
-        self.fc_1 = nn.Linear(256, hidden_dim)
-        # self.fc_2 = nn.Linear(hidden_dim * 4, hidden_dim * 2)
-        # self.fc_3 = nn.Linear(hidden_dim * 2, hidden_dim)
-
-        self.dropout = nn.Dropout(p=0.5)
+        # self.dropout = nn.Dropout(p=0.5)
 
         self.model_head = nn.Sequential(
             nn.Linear(hidden_dim, max_series_len * 9),
@@ -70,35 +66,27 @@ class MusicModel(nn.Module):
         x = self.conv2(x)
         x = self.bn2(x)
         x = self.relu(x)
+        x = self.max_pool(x)
 
         x = self.conv3(x)
         x = self.bn3(x)
         x = self.relu(x)
+        x = self.max_pool(x)
 
         x = self.conv4(x)
         x = self.bn4(x)
         x = self.relu(x)
-
-        x = self.adaptive_max_pool(x)
-
-        x = x.squeeze(2)
-        x = self.fc_shrink(x)
 
         x = torch.flatten(x, 1)
 
         x = self.fc(x)
         x = self.relu(x)
 
-        x = self.dropout(x)
-
         x = self.fc_1(x)
         x = self.relu(x)
-        #
-        # x = self.fc_2(x)
-        # x = self.relu(x)
-        #
-        # x = self.fc_3(x)
-        # x = self.relu(x)
+
+        x = self.fc_2(x)
+        x = self.relu(x)
 
         x = self.model_head(x)
 
