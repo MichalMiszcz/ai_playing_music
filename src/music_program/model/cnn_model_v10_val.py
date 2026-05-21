@@ -6,6 +6,8 @@ import torch
 import torch.nn as nn
 from torchvision import models
 
+from src.music_program.utils.global_variables import *
+
 
 class MusicModel(nn.Module):
     def __init__(self, features_number, hidden_dim, max_series_len):
@@ -36,12 +38,16 @@ class MusicModel(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.max_pool = nn.MaxPool2d(kernel_size=(2, 2))
 
-        self.fc_shrink = nn.Linear(7 * 21, self.max_series_len)
+        self.fc = nn.Linear(out_channels * 7 * 21, 1024)
+        self.fc_1 = nn.Linear(1024, 256)
+        self.fc_2 = nn.Linear(256, hidden_dim)
 
-        self.rnn = nn.GRU(input_size=256, hidden_size=hidden_dim,
-                          num_layers=2, bidirectional=True, batch_first=True, dropout=0.3)
+        # self.dropout = nn.Dropout(p=0.5)
 
-        self.fc = nn.Linear(hidden_dim * 2, 9)
+        self.model_head = nn.Sequential(
+            nn.Linear(hidden_dim, max_series_len * 9),
+            nn.Unflatten(dim=-1, unflattened_size=(max_series_len, 9))
+        )
 
     def forward(self, x):
         x = self.conv1(x)
@@ -63,13 +69,17 @@ class MusicModel(nn.Module):
         x = self.bn4(x)
         x = self.relu(x)
 
-
-        x = torch.flatten(x, 2)
-        x = self.fc_shrink(x)
-        x = x.permute(0, 2, 1)
-
-        x, _ = self.rnn(x)
+        x = torch.flatten(x, 1)
 
         x = self.fc(x)
+        x = self.relu(x)
+
+        x = self.fc_1(x)
+        x = self.relu(x)
+
+        x = self.fc_2(x)
+        x = self.relu(x)
+
+        x = self.model_head(x)
 
         return x

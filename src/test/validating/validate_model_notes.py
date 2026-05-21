@@ -1,4 +1,5 @@
 import os
+from sklearn.metrics import confusion_matrix
 
 import mido
 import torch
@@ -7,6 +8,8 @@ import pandas as pd
 import torch
 import torch.optim as optim
 from matplotlib import pyplot as plt
+import matplotlib.colors as mcolors
+import seaborn as sns
 from torch import nn
 from torch.utils.data import DataLoader
 from torchvision.transforms import v2
@@ -14,14 +17,14 @@ from torchvision.transforms import v2
 from src.music_program.learning import params_dict
 from src.music_program.utils.global_variables import *
 
-from src.music_program.model.cnn_model_v10 import MusicModel
+from src.music_program.model.cnn_model_v10_val import MusicModel
 from src.music_program.dataset.music_image_dataset_10 import MusicImageDataset
 
 note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
 velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
 delta_time_to_index = {midi_num: i for i, midi_num in enumerate(DELTA_TIME)}
 
-model_path = "src/_models/image_to_midi/model_best_v800_203_checkpoint.pth"
+model_path = "src/_models/image_to_midi/model_best_v800_302_checkpoint.pth"
 image_root_test = "src/all_data/generated/my_complex_images_test/my_midi_images"
 midi_root_test = "src/all_data/generated/generated_complex_midi_processed_test"
 
@@ -30,7 +33,7 @@ midi_columns = ['midi_note', 'velocity', 'delta_time']
 
 
 version = 800
-subversion = '203'
+subversion = '302'
 
 max_seq_len = 64
 max_series_len = 16
@@ -87,6 +90,8 @@ def main():
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
 
+    all_source_notes = []
+    all_predicted_notes = []
     for i, (images, midi_batch, _, _) in enumerate(val_dataloader):
         with torch.no_grad():
             images = images.to(device)
@@ -106,11 +111,23 @@ def main():
 
             errors, diff = count_errors(midi_notes, predicted_notes)
 
+            all_source_notes.extend(midi_notes)
+            all_predicted_notes.extend(predicted_notes)
+
             print("Predicted: ", predicted_notes)
             print("Source:    ", midi_notes)
             print(f"Errors: {errors}/{max_series_len}")
             print(f"Difference: {diff}")
             print()
+
+    cm = confusion_matrix(all_source_notes, all_predicted_notes)
+    print(cm)
+    plt.figure(figsize=[6, 5])
+    sns.heatmap(cm, annot=True, linewidths=0.5, norm=mcolors.AsinhNorm(), cmap="BuPu", cbar=False)
+    plt.yticks(rotation=0, va='center')
+    plt.xlabel("Predicted Notes")
+    plt.ylabel("True Notes")
+    plt.show()
 
 
 if __name__ == '__main__':
