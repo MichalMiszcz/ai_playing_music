@@ -13,6 +13,7 @@ import seaborn as sns
 from torch import nn
 from torch.utils.data import DataLoader
 from torchvision.transforms import v2
+from torchvision.transforms.v2.functional import to_pil_image
 
 from src.music_program.learning import params_dict
 from src.music_program.utils.global_variables import *
@@ -24,7 +25,7 @@ note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
 velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
 delta_time_to_index = {midi_num: i for i, midi_num in enumerate(DELTA_TIME)}
 
-model_path = "src/_models/image_to_midi/model_best_v800_302_checkpoint.pth"
+model_path = "src/_models/image_to_midi/model_best_v800_401_checkpoint.pth"
 image_root_test = "src/all_data/generated/my_complex_images_test/my_midi_images"
 midi_root_test = "src/all_data/generated/generated_complex_midi_processed_test"
 
@@ -33,7 +34,7 @@ midi_columns = ['midi_note', 'velocity', 'delta_time']
 
 
 version = 800
-subversion = '302'
+subversion = '401'
 
 max_seq_len = 64
 max_series_len = 16
@@ -46,7 +47,7 @@ hidden_dim = 64
 version_name = str(version) + '_' + str(subversion) if subversion is not None else str(version)
 print(f'Version name: {version_name}')
 
-max_midi_files_test = 32
+max_midi_files_test = 96
 
 left_hand_tracks = ['Piano left', 'Left']
 right_hand_tracks = ['Piano right', 'Right', 'Track 0']
@@ -123,10 +124,11 @@ def main():
     cm = confusion_matrix(all_source_notes, all_predicted_notes)
     print(cm)
     plt.figure(figsize=[6, 5])
-    sns.heatmap(cm, annot=True, linewidths=0.5, norm=mcolors.AsinhNorm(), cmap="BuPu", cbar=False)
+    sns.heatmap(cm, annot=True, fmt='d', linewidths=0.5, norm=mcolors.AsinhNorm(), cmap="BuPu", cbar=False)
     plt.yticks(rotation=0, va='center')
     plt.xlabel("Predicted Notes")
     plt.ylabel("True Notes")
+    plt.title(f"Confusion Matrix for model v.{version_name}")
     plt.show()
 
 

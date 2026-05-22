@@ -1,5 +1,5 @@
 """
-Implementacja klasy datasetu. Dane uczące to obrazy zawierające tylko jedną pięciolinię oraz skrócone MIDI.
+Implementacja klasy datasetu. Dane uczące to obrazy zawierające tylko jedną pięciolinię oraz dwuwymiarowe MIDI.
 """
 
 import torch
@@ -14,6 +14,8 @@ from torchvision.transforms.v2.functional import to_pil_image
 from src.music_program.utils.global_variables import *
 from src.utils import index_to_note_delta_time
 from src.utils.midi_sequence_conversion import normalize_3d_midi_sequence, create_2d_time_series
+
+from collections import Counter
 
 note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
 velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
@@ -53,6 +55,8 @@ class MusicImageDataset(Dataset):
         self.midi_time_seq = {}
         records_to_remove = []
 
+        self.lengths_of_midis = []
+
         for folder, author, midi_file in self.selected_midi_files:
             midi_name = os.path.splitext(os.path.basename(midi_file))[0]
             midi_key = f"{author}/{midi_name}"
@@ -63,16 +67,20 @@ class MusicImageDataset(Dataset):
                     continue
                 if len(midi_seq) > self.max_seq_len:
                     midi_seq = midi_seq[:self.max_seq_len]
-                else:
-                    midi_seq += [(0, 0, 0)] * (self.max_seq_len - len(midi_seq))
+                # else:
+                #     midi_seq += [(0, 0, 0)] * (self.max_seq_len - len(midi_seq))
 
-                normalized_seq = normalize_3d_midi_sequence(midi_seq)
-                self.midi_features[midi_key] = normalized_seq
-                self.midi_time_seq[midi_key] = create_2d_time_series(normalized_seq, self.max_series_len)
-                self.midi_time_seq[midi_key] = [note for note, _ in self.midi_time_seq[midi_key]]
+                # if len(midi_seq) > 32:
+                #     raise Exception
+
+                # normalized_seq = normalize_3d_midi_sequence(midi_seq)
+                self.midi_features[midi_key] = midi_seq
+                self.midi_time_seq[midi_key] = create_2d_time_series(midi_seq, self.max_series_len)
+
+                # self.lengths_of_midis.append(len(self.midi_time_seq[midi_key]))
 
             except Exception as e:
-                print(f"Error processing MIDI {midi_file}: {e}")
+                # print(f"Error processing MIDI {midi_file}: {e}")
                 records_to_remove.append((folder, author, midi_file))
                 continue
 
@@ -98,6 +106,9 @@ class MusicImageDataset(Dataset):
         if len(self.image_paths) == 0:
             raise ValueError("No images found for the selected MIDI files. Check directory paths and file structure.")
 
+        # counter = Counter(self.lengths_of_midis)
+        # print(counter)
+
     def __len__(self):
         return len(self.image_paths)
 
@@ -112,19 +123,6 @@ class MusicImageDataset(Dataset):
         image = Image.open(img_path).convert('L')
         # image.show()
 
-        # if self.modify_image:
-        #     apply_augmentation = random.randrange(0, 1)
-        #     if apply_augmentation <= self.aug_prob:
-        #         img_array = np.array(image)
-        #         # angle = random.uniform(-2, 2)
-        #         angle = 0
-        #         x_shift = random.randint(-10, 10)
-        #         y_shift = random.randint(0, 30)
-        #
-        #         rotated_array = modify_image_opencv(img_array, angle, x_shift, y_shift)
-        #
-        #         image = Image.fromarray(rotated_array)
-
         if self.image_transform:
             image = self.image_transform(image)
             img_height = image.shape[1]
@@ -134,47 +132,9 @@ class MusicImageDataset(Dataset):
             # image_to_show.show("Modified image")
 
         normalized_seq = self.midi_time_seq.get(midi_key)
-        midi_tensor_series = torch.tensor(normalized_seq, dtype=torch.float32)
+        midi_tensor_series = torch.tensor(normalized_seq, dtype=torch.long)
 
         return image, midi_tensor_series
-
-    def create_time_series(self, midi_seq):
-        time_series = []
-        current_note = None
-
-        def make_indexes(note_idx, delta_time_idx):
-            index = delta_time_idx + (NUM_DELTA_TIME - 1) * note_idx
-            return index
-
-        for row in midi_seq:
-            note = row[0]
-            velocity = row[1]
-            delta_time = row[2]
-
-            if velocity > 0:
-                current_note = note
-            else:
-                if current_note is not None:
-                    time_series.append(make_indexes(note, delta_time))
-                    current_note = None
-
-        if len(time_series) < self.max_series_len:
-            time_series.extend([0] * (self.max_series_len - len(time_series)))
-
-        return time_series
-
-
-# def modify_image_opencv(image_array, angle, x_shift, y_shift):
-#     (h, w) = image_array.shape[:2]
-#     center = (w // 2, h // 2)
-#
-#     matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
-#
-#     matrix[0, 2] += x_shift
-#     matrix[1, 2] += y_shift
-#
-#     rotated = cv2.warpAffine(image_array, matrix, (w, h), borderValue=(255, 255, 255))
-#     return rotated
 
 def extract_notes_from_midi(midi_path, left_hand_tracks, right_hand_tracks, max_midi_duration):
     try:
