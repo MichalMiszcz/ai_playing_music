@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 1
+names: ['Treble Clef']
+
+roboflow:
+  workspace: michas-workspace-yrqwn
+  project: michas-workspace-yrqwn
+  version: dataset
+  license: Private
+  url: https://app.roboflow.com/michas-workspace-yrqwn/michas-workspace-yrqwn/dataset

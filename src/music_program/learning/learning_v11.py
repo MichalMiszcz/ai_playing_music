@@ -64,7 +64,7 @@ image_transform = v2.Compose([
     v2.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
     v2.ToImage(),
     v2.ToDtype(torch.float32, scale=True),
-    v2.RandomInvert(p=0.4),
+    v2.RandomInvert(p=0.5),
     v2.RandomAdjustSharpness(sharpness_factor=2.0, p=0.5)
 ])
 
