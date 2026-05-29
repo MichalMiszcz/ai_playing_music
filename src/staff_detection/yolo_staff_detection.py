@@ -4,7 +4,7 @@ path_to_images = "src/all_data/labeled_images/data.yaml"
 yolo_version = "yolo11n.pt"
 
 epochs = 10
-patience = 5
+patience = 3
 
 batch_size = 8
 

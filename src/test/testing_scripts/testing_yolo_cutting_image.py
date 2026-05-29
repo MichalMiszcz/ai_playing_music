@@ -1,4 +1,5 @@
 from ultralytics import YOLO
+from PIL import Image
 
 model = YOLO("runs/detect/train-13/weights/best.pt")
 
@@ -17,8 +18,17 @@ for result in results:
         class_id = int(box.cls[0])
         class_name = model.names[class_id]
 
-        print(f"Znaleziono obiekt: '{class_name}'")
-        print(f" -> Pozycja na obrazie (piksele): {position}")
-        print(f" -> Pewność: {confidence}\n")
+        y_1 = position[1] - 8
+        y_2 = position[3] + 8
 
-    result.save(filename="wynik_detekcji.jpg")
+        image = Image.open(path_to_image)
+        crop_box = (0, y_1, image.width, y_2)
+        cropped_image = image.crop(crop_box)
+
+        canvas = Image.new("RGB", (image.width, int(image.height/3)), (255, 255, 255))
+
+        paste_position_y = int(image.height/6) - int((y_2 - y_1)/2)
+        paste_position = (0, paste_position_y)
+        canvas.paste(cropped_image, paste_position)
+
+        canvas = canvas.resize((512, int(512/3)))

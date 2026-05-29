@@ -127,7 +127,7 @@ class MusicImageDataset(Dataset):
             image = self.image_transform(image)
             img_height = image.shape[1]
             part_to_cut = int(img_height/3)
-            image = image[:, 0:part_to_cut, :]
+            image = imazge[:, 0:part_to_cut, :]
             # image_to_show = to_pil_image(image)
             # image_to_show.show("Modified image")
 
