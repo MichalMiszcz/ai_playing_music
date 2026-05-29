@@ -7,6 +7,7 @@ path_to_image = "src/all_data/generated/my_complex_images_test/my_midi_images/my
 
 results = model(path_to_image, imgsz=640)
 
+staff_list = []
 for result in results:
     boxes = result.boxes
 
@@ -32,3 +33,7 @@ for result in results:
         canvas.paste(cropped_image, paste_position)
 
         canvas = canvas.resize((512, int(512/3)))
+
+        staff_list.append((position[1], canvas))
+
+    staff_list.sort(key=lambda x: x[0])
