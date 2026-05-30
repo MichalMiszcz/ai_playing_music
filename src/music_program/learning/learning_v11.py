@@ -38,7 +38,7 @@ max_series_len = int(max_seq_len / 2)
 val_batch_size = 512
 # features_number = 8
 
-epochs = 100
+epochs = 1
 # learning_rate = 0.0001
 weight_decay = 0.00001
 max_norm = 1.0

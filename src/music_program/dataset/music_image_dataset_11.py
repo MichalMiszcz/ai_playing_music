@@ -129,11 +129,15 @@ class MusicImageDataset(Dataset):
             image = self.image_transform(image)
             img_height = image.shape[1]
             part_to_cut = int(img_height/3)
+            part_to_cut_2 = int(2*img_height/3)
 
             if self.learning is True:
-                image = image[:, 0:part_to_cut, :]
-            # image_to_show = to_pil_image(image)
-            # image_to_show.show("Modified image")
+                # image = image[:, 0:part_to_cut, :] # cutting first staff
+                image = image[:, part_to_cut:part_to_cut_2, :] # cutting second staff
+            image_to_show = to_pil_image(image)
+            image_to_show.show("Modified image")
+
+            print(self.midi_time_seq.get(midi_key))
 
         normalized_seq = self.midi_time_seq.get(midi_key)
         midi_tensor_series = torch.tensor(normalized_seq, dtype=torch.long)
@@ -168,13 +172,12 @@ def extract_notes_from_midi(midi_path, left_hand_tracks, right_hand_tracks, max_
             current_time += msg.time
             current_time_idx += delta_time_to_index[msg.time]
 
-            if current_time <= max_midi_duration:
+            if max_midi_duration <= current_time <= 2 * max_midi_duration:
                 if msg.type in ('note_on', 'note_off'):
                     if msg.note in note_to_index:
-                        if msg.note in note_to_index:
-                            note_idx = note_to_index[msg.note]
-                            notes_velocity = velocity_to_index[msg.velocity] if msg.type == 'note_on' else 0
-                            events.append((current_time_idx, note_idx, notes_velocity))
+                        note_idx = note_to_index[msg.note]
+                        notes_velocity = velocity_to_index[msg.velocity] if msg.type == 'note_on' else 0
+                        events.append((current_time_idx, note_idx, notes_velocity))
 
         return events
 
@@ -186,8 +189,12 @@ def extract_notes_from_midi(midi_path, left_hand_tracks, right_hand_tracks, max_
 
     all_events.sort(key=lambda x: (x[0], x[2]))  # sort by time, then velocity
 
+    if len(all_events) == 1:
+        all_events = []
+
     if not all_events:
-        return []
+        raise Exception("No events found for the selected MIDI files.")
+        # return []
 
     sequence = []
     prev_time = 0
