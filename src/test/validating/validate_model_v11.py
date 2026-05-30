@@ -2,7 +2,6 @@ import os
 from sklearn.metrics import confusion_matrix
 
 import mido
-import torch
 from torch.utils.data import DataLoader
 import pandas as pd
 import torch
@@ -15,7 +14,6 @@ from torch.utils.data import DataLoader
 from torchvision.transforms import v2
 from torchvision.transforms.v2.functional import to_pil_image
 
-from src.music_program.learning import params_dict
 from src.music_program.utils.global_variables import *
 
 from src.music_program.model.cnn_model_v11_val import MusicModel
@@ -30,7 +28,6 @@ image_root_test = "src/all_data/generated/my_complex_images_test/my_midi_images"
 midi_root_test = "src/all_data/generated/generated_complex_midi_processed_test"
 
 midi_columns = ['midi_note', 'velocity', 'delta_time']
-
 
 
 version = 900
