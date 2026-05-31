@@ -24,7 +24,7 @@ from src.utils.python_colors import bcolors
 from src.utils.teacher_ratio import count_teacher_ratio
 
 # Parametry modelu i uczenia
-model_dir = None #'src/_models/image_to_midi/model_best_v800_001_checkpoint.pth'
+model_dir = 'src/_models/image_to_midi/model_best_v900_002_checkpoint.pth'
 
 version = 900
 # subversion = None
@@ -38,7 +38,7 @@ max_series_len = int(max_seq_len / 2)
 val_batch_size = 512
 # features_number = 8
 
-epochs = 1
+epochs = 100
 # learning_rate = 0.0001
 weight_decay = 0.00001
 max_norm = 1.0
@@ -64,7 +64,7 @@ image_transform = v2.Compose([
     v2.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
     v2.ToImage(),
     v2.ToDtype(torch.float32, scale=True),
-    v2.RandomInvert(p=0.5),
+    v2.RandomInvert(p=0.4),
     v2.RandomAdjustSharpness(sharpness_factor=2.0, p=0.5)
 ])
 

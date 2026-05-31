@@ -12,9 +12,9 @@ params_dict = [
 
     {
         'subversion': '0021',
-        'max_midi_files': 1,
-        'max_midi_files_test': 1,
-        'batch_size': 1,
+        'max_midi_files': 8192,
+        'max_midi_files_test': 1024,
+        'batch_size': 4,
         'features_number': 32,
         'hidden_dim': 64,
         'learning_rate': 0.0001
