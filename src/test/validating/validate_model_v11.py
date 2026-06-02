@@ -1,29 +1,23 @@
-import os
 from sklearn.metrics import confusion_matrix
 
-import mido
-from torch.utils.data import DataLoader
-import pandas as pd
 import torch
-import torch.optim as optim
 from matplotlib import pyplot as plt
 import matplotlib.colors as mcolors
 import seaborn as sns
-from torch import nn
 from torch.utils.data import DataLoader
 from torchvision.transforms import v2
-from torchvision.transforms.v2.functional import to_pil_image
 
 from src.music_program.utils.global_variables import *
 
 from src.music_program.model.cnn_model_v11_val import MusicModel
 from src.music_program.dataset.music_image_dataset_11 import MusicImageDataset
+from src.test.validating.counting_errors import count_errors
 
 note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
 velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
 delta_time_to_index = {midi_num: i for i, midi_num in enumerate(DELTA_TIME)}
 
-model_path = "src/_models/image_to_midi/model_best_v900_002_checkpoint.pth"
+model_path = "src/_models/image_to_midi/model_best_v900_0022_checkpoint.pth"
 image_root_test = "src/all_data/generated/my_complex_images_test/my_midi_images"
 midi_root_test = "src/all_data/generated/generated_complex_midi_processed_test"
 
@@ -31,7 +25,7 @@ midi_columns = ['midi_note', 'velocity', 'delta_time']
 
 
 version = 900
-subversion = '002'
+subversion = '0022'
 
 max_seq_len = 64
 max_series_len = 32
@@ -67,21 +61,6 @@ val_dataloader = DataLoader(val_dataset, shuffle=False, pin_memory=True)
 
 # Loading model
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-def count_errors(source, output):
-    number_of_errors = 0
-    sum_difference = 0
-
-    for i, [note, time] in enumerate(source):
-        if output[i][0] != note:
-            number_of_errors += 1
-            sum_difference += abs(note - output[i][0])
-
-        if output[i][1] != time:
-            number_of_errors += 1
-            sum_difference += abs(time - output[i][1])
-
-    return number_of_errors, sum_difference
 
 def main():
     model = MusicModel(features_number, hidden_dim, max_series_len)

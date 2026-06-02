@@ -20,6 +20,7 @@ from src.music_program.utils.global_variables import *
 
 from src.music_program.model.cnn_model_v10_val import MusicModel
 from src.music_program.dataset.music_image_dataset_10 import MusicImageDataset
+from src.test.validating.counting_errors import count_errors
 
 note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
 velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
@@ -70,17 +71,6 @@ val_dataloader = DataLoader(val_dataset, shuffle=False, pin_memory=True)
 
 # Loading model
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-def count_errors(source, output):
-    number_of_errors = 0
-    sum_difference = 0
-
-    for i, note in enumerate(source):
-        if output[i] != note:
-            number_of_errors += 1
-            sum_difference += abs(note - output[i])
-
-    return number_of_errors, sum_difference
 
 def main():
     model = MusicModel(features_number, hidden_dim, max_series_len)

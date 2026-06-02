@@ -81,15 +81,16 @@ def from_raw_to_midi(sequence):
     return final_predicted_sequence
 
 
-def time_series_to_midi_seq(time_series):
+def time_series_to_midi_seq(time_series, mode="old"):
     def round_to_list(value, target_list):
         return min(target_list, key=lambda x: abs(x - value))
 
-    time_series = [
-        (int(round(norm_note * (NUM_NOTES - 1.0))),
-         delta_time_to_index[int(round_to_list((norm_delta_time * MAX_DELTA_TIME), DELTA_TIME))])
-        for norm_note, norm_delta_time in time_series
-    ]
+    if mode == "old":
+        time_series = [
+            (int(round(norm_note * (NUM_NOTES - 1.0))),
+             delta_time_to_index[int(round_to_list((norm_delta_time * MAX_DELTA_TIME), DELTA_TIME))])
+            for norm_note, norm_delta_time in time_series
+        ]
 
     time_series = [
         (max(0, min(WHITE_KEYS_MIDI[note], WHITE_KEYS_MIDI[NUM_NOTES - 1])),

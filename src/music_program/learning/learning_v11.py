@@ -24,7 +24,7 @@ from src.utils.python_colors import bcolors
 from src.utils.teacher_ratio import count_teacher_ratio
 
 # Parametry modelu i uczenia
-model_dir = 'src/_models/image_to_midi/model_best_v900_002_checkpoint.pth'
+model_dir = 'src/_models/image_to_midi/model_best_v900_0021_checkpoint.pth'
 
 version = 900
 # subversion = None
@@ -64,8 +64,8 @@ image_transform = v2.Compose([
     v2.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
     v2.ToImage(),
     v2.ToDtype(torch.float32, scale=True),
-    v2.RandomInvert(p=0.4),
-    v2.RandomAdjustSharpness(sharpness_factor=2.0, p=0.5)
+    v2.RandomInvert(p=0.1),
+    v2.RandomAdjustSharpness(sharpness_factor=2.0, p=0.25)
 ])
 
 image_validation_transform = v2.Compose([
@@ -93,7 +93,7 @@ def resume(model_to_load_to, optimizer, scheduler, filename):
     checkpoint = torch.load(filename)
     model_to_load_to.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+    # scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
     epoch = checkpoint['epoch']
     loss = checkpoint['val_loss']
 

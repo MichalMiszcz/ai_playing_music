@@ -20,9 +20,10 @@ def normalize_3d_midi_sequence(midi_seq):
     return normalized_midi_seq
 
 
-def create_2d_time_series(midi_seq, max_series_len):
+def create_2d_time_series(midi_seq, max_series_len, learning=True):
     """
     Method to create two-dimensional time series of notes
+    :param learning: parameter that changes note number that extends sequence
     :param midi_seq: sequence that stores information from midi. Structure of sequence: [(note, velocity, delta_time), ...]
     :param max_series_len: maximum length of time series
     :return: two-dimensional time series of notes. Structure of sequence: [(note, delta_time), ...]
@@ -42,8 +43,13 @@ def create_2d_time_series(midi_seq, max_series_len):
                 time_series.append((note, delta_time))
                 current_note = None
 
+    if learning:
+        note = NUM_NOTES
+    else:
+        note = 0
+
     if len(time_series) < max_series_len:
-        time_series.extend([(NUM_NOTES, 0)] * (max_series_len - len(time_series)))
+        time_series.extend([(note, 0)] * (max_series_len - len(time_series)))
 
     return time_series
 

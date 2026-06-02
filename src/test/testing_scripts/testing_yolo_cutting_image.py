@@ -42,7 +42,7 @@ def segment_image(path_to_image=None, source_image=None):
             canvas = canvas.resize((WIDTH, int(HEIGHT/3)))
 
             staff_list.append((position[1], canvas))
-            canvas.show()
+            # canvas.show()
 
         staff_list.sort(key=lambda x: x[0])
 

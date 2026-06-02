@@ -64,11 +64,16 @@ class MusicImageDataset(Dataset):
             midi_name = os.path.splitext(os.path.basename(midi_file))[0]
             midi_key = f"{author}/{midi_name}"
             try:
-                staff_num = random.randint(1, 2)
-                midi_seq = extract_notes_from_midi(midi_file, self.left_hand_tracks, self.right_hand_tracks, self.max_midi_duration, staff_num)
+                if self.learning:
+                    staff_num = random.randint(1, 2)
+                else:
+                    staff_num = "all"
+                midi_seq = extract_notes_from_midi(midi_file, self.left_hand_tracks, self.right_hand_tracks,
+                                                   self.max_midi_duration, staff_num)
                 if midi_seq is None:
                     records_to_remove.append((folder, author, midi_file))
                     continue
+
                 if len(midi_seq) > self.max_seq_len:
                     midi_seq = midi_seq[:self.max_seq_len]
                 # else:
@@ -79,7 +84,13 @@ class MusicImageDataset(Dataset):
 
                 # normalized_seq = normalize_3d_midi_sequence(midi_seq)
                 self.midi_features[midi_key] = midi_seq
-                self.midi_time_seq[midi_key] = create_2d_time_series(midi_seq, self.max_series_len)
+
+                if learning:
+                    max_len = self.max_series_len
+                else:
+                    max_len = self.max_seq_len
+
+                self.midi_time_seq[midi_key] = create_2d_time_series(midi_seq, max_len, self.learning)
                 self.staff[midi_key] = staff_num
 
                 # self.lengths_of_midis.append(len(self.midi_time_seq[midi_key]))
@@ -117,7 +128,6 @@ class MusicImageDataset(Dataset):
     def __len__(self):
         return len(self.image_paths)
 
-
     def __getitem__(self, idx):
         img_path = self.image_paths[idx]
 
@@ -131,14 +141,14 @@ class MusicImageDataset(Dataset):
         if self.image_transform:
             image = self.image_transform(image)
             img_height = image.shape[1]
-            part_to_cut = int(img_height/3)
-            part_to_cut_2 = int(2*img_height/3) - 1
+            part_to_cut = int(img_height / 3)
+            part_to_cut_2 = int(2 * img_height / 3) - 1
 
             if self.learning is True:
                 if self.staff[midi_key] == 1:
-                    image = image[:, 0:part_to_cut, :] # cutting first staff
+                    image = image[:, 0:part_to_cut, :]  # cutting first staff
                 elif self.staff[midi_key] == 2:
-                    image = image[:, part_to_cut:part_to_cut_2, :] # cutting second staff
+                    image = image[:, part_to_cut:part_to_cut_2, :]  # cutting second staff
             # image_to_show = to_pil_image(image)
             # image_to_show.show("Modified image")
 
@@ -146,6 +156,7 @@ class MusicImageDataset(Dataset):
         midi_tensor_series = torch.tensor(normalized_seq, dtype=torch.long)
 
         return image, midi_tensor_series
+
 
 def extract_notes_from_midi(midi_path, left_hand_tracks, right_hand_tracks, max_midi_duration, staff_num):
     try:
@@ -175,19 +186,24 @@ def extract_notes_from_midi(midi_path, left_hand_tracks, right_hand_tracks, max_
             current_time += msg.time
             current_time_idx += delta_time_to_index[msg.time]
 
-            if staff_num == 1:
-                if current_time <= max_midi_duration:
-                    if msg.type in ('note_on', 'note_off'):
-                        if msg.note in note_to_index:
-                            note_idx = note_to_index[msg.note]
-                            notes_velocity = velocity_to_index[msg.velocity] if msg.type == 'note_on' else 0
+            def process_msg(msg):
+                note_index = note_to_index[msg.note]
+                note_velocity = velocity_to_index[msg.velocity] if msg.type == 'note_on' else 0
+
+                return note_index, note_velocity
+
+            if msg.type in ('note_on', 'note_off'):
+                if msg.note in note_to_index:
+                    if staff_num == "all":
+                        note_idx, notes_velocity = process_msg(msg)
+                        events.append((current_time_idx, note_idx, notes_velocity))
+                    if staff_num == 1:
+                        if current_time <= max_midi_duration:
+                            note_idx, notes_velocity = process_msg(msg)
                             events.append((current_time_idx, note_idx, notes_velocity))
-            elif staff_num == 2:
-                if max_midi_duration <= current_time <= 2 * max_midi_duration:
-                    if msg.type in ('note_on', 'note_off'):
-                        if msg.note in note_to_index:
-                            note_idx = note_to_index[msg.note]
-                            notes_velocity = velocity_to_index[msg.velocity] if msg.type == 'note_on' else 0
+                    elif staff_num == 2:
+                        if max_midi_duration <= current_time <= 2 * max_midi_duration:
+                            note_idx, notes_velocity = process_msg(msg)
                             events.append((current_time_idx, note_idx, notes_velocity))
 
         return events
@@ -216,4 +232,3 @@ def extract_notes_from_midi(midi_path, left_hand_tracks, right_hand_tracks, max_
         prev_time = time
 
     return sequence
-
