@@ -68,9 +68,19 @@ class MusicImageDataset(Dataset):
                     staff_num = random.randint(1, 2)
                 else:
                     staff_num = "all"
-                midi_seq = extract_notes_from_midi(midi_file, self.left_hand_tracks, self.right_hand_tracks,
-                                                   self.max_midi_duration, staff_num)
+
+                try:
+                    midi_seq = extract_notes_from_midi(midi_file, self.left_hand_tracks, self.right_hand_tracks,
+                                                       self.max_midi_duration, staff_num)
+                except Exception as e:
+                    staff_num = 1
+                    midi_seq = extract_notes_from_midi(midi_file, self.left_hand_tracks, self.right_hand_tracks,
+                                                       self.max_midi_duration, staff_num)
+
+                self.staff[midi_key] = staff_num
+
                 if midi_seq is None:
+                    print("Record to remove: ", folder, author, midi_file)
                     records_to_remove.append((folder, author, midi_file))
                     continue
 
@@ -91,7 +101,6 @@ class MusicImageDataset(Dataset):
                     max_len = self.max_seq_len
 
                 self.midi_time_seq[midi_key] = create_2d_time_series(midi_seq, max_len, self.learning)
-                self.staff[midi_key] = staff_num
 
                 # self.lengths_of_midis.append(len(self.midi_time_seq[midi_key]))
 

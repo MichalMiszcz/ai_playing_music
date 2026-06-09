@@ -11,7 +11,7 @@ params_dict = [
     # }
 
     {
-        'subversion': '0022',
+        'subversion': '0022222',
         'max_midi_files': 8192,
         'max_midi_files_test': 1024,
         'batch_size': 4,

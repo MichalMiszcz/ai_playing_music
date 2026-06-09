@@ -1,5 +1,5 @@
 """
-Model bazującego na sieci konwolucyjnej. Dane uczące to obrazy zawierające tylko jedną pięciolinię oraz skrócone MIDI.
+Model bazującego na sieci konwolucyjnej. Dane uczące to obrazy zawierające tylko jedną pięciolinię oraz dwuwymiarowe MIDI.
 """
 
 import torch
@@ -39,9 +39,10 @@ class MusicModel(nn.Module):
         self.fc_shrink = nn.Linear(85, self.max_series_len)
 
         self.rnn = nn.GRU(input_size=256, hidden_size=hidden_dim,
-                          num_layers=2, bidirectional=True, batch_first=True, dropout=0.4)
+                          num_layers=2, bidirectional=True, batch_first=True, dropout=0.2)
 
-        self.fc = nn.Linear(hidden_dim * 2, 9)
+        self.note_fc = nn.Linear(hidden_dim * 2, 9)
+        self.time_fc = nn.Linear(hidden_dim * 2, 6)
 
     def forward(self, x):
         x = self.cnn(x)
@@ -53,6 +54,7 @@ class MusicModel(nn.Module):
 
         x, _ = self.rnn(x)
 
-        x = self.fc(x)
+        note = self.note_fc(x)
+        time = self.time_fc(x)
 
-        return x
+        return note, time
