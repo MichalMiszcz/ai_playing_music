@@ -79,8 +79,8 @@ def convert_xml_to_sheet(xml_file, output_file, musescore_path="MuseScore4.exe")
         sys.exit(1)
 
     try:
-        resolution = random.randint(72, 80)
-        # resolution = 200
+        # resolution = random.randint(72, 80)
+        resolution = 200 # low_res = 72, hi_res = 200
         print("Resolution:", resolution)
         command = [musescore_path, f"-r {resolution}", xml_file, "-o", output_file]
         print("Converting MusicXML to sheet music using MuseScore...")
@@ -180,19 +180,19 @@ def midi2jpg(midi_folder_path, image_folder_path, mode='midi', instances_count =
 
 
 if __name__ == "__main__":
-    midi_raw_folder_path = "src/all_data/generated/generated_complex_midi_raw/my_midi_files"
+    # midi_raw_folder_path = "src/all_data/generated/generated_complex_midi_raw/my_midi_files"
     # midi_raw_folder_path = "../src/all_data/model_generated/sheet_vision/hi_res"
-    # midi_raw_folder_path = "../src/all_data/data_to_analyze/midi"
-    # xml_raw_folder_path = "../src/all_data/data_to_analyze/mxml"
-    xml_raw_folder_path = "src/all_data/generated/generated_complex_midi_raw/my_xml_files"
+    midi_raw_folder_path = "src/all_data/data_to_analyze/midi"
+    xml_raw_folder_path = "src/all_data/data_to_analyze/mxml"
+    # xml_raw_folder_path = "src/all_data/generated/generated_complex_midi_raw/my_xml_files"
     # processed_folder_path = "data/processed_midi"
-    # processed_folder_path = "../src/all_data/model_generated/sheet_vision/hi_res_processed"
-    processed_folder_path = "src/all_data/generated/generated_complex_midi_processed/my_midi_files"
+    processed_folder_path = "src/all_data/data_to_analyze/midi_processed"
+    # processed_folder_path = "src/all_data/generated/generated_complex_midi_processed/my_midi_files"
     # image_folder_path = "data/images"
     # image_folder_path = "my_images/my_midi_images"
-    image_folder_path = "src/all_data/generated/my_complex_images/my_midi_images/my_midi_files"
-    # image_folder_path = "../src/all_data/data_to_analyze/low_res"
+    # image_folder_path = "src/all_data/generated/my_complex_images/my_midi_images/my_midi_files"
+    image_folder_path = "src/all_data/data_to_analyze/hi_res"
 
-    # process_midi(midi_raw_folder_path, processed_folder_path, max_duration=24.0, fixed_bpm=120, add_track_name=True)
+    process_midi(midi_raw_folder_path, processed_folder_path, max_duration=24.0, fixed_bpm=120, add_track_name=True)
     # midi2jpg(processed_folder_path, image_folder_path)
-    midi2jpg(xml_raw_folder_path, image_folder_path, 'xml', instances_count=1)
+    # midi2jpg(xml_raw_folder_path, image_folder_path, 'xml', instances_count=4)
