@@ -20,7 +20,6 @@ note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
 velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
 delta_time_to_index = {midi_num: i for i, midi_num in enumerate(DELTA_TIME)}
 
-model_path = "src/_models/image_to_midi/model_best_v900_010_checkpoint.pth"
 image_root_test = "src/all_data/generated/my_complex_images_test/my_midi_images"
 midi_root_test = "src/all_data/generated/generated_complex_midi_processed_test"
 
@@ -28,7 +27,7 @@ midi_columns = ['midi_note', 'velocity', 'delta_time']
 
 
 version = 900
-subversion = '010'
+subversion = '011'
 
 max_seq_len = 96
 max_series_len = 32
@@ -40,6 +39,8 @@ hidden_dim = 64
 
 version_name = str(version) + '_' + str(subversion) if subversion is not None else str(version)
 print(f'Version name: {version_name}')
+
+model_path = f"src/_models/image_to_midi/model_best_v{version_name}_checkpoint.pth"
 
 model_mode = "my_model"
 res = "low"
