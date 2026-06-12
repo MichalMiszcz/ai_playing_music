@@ -29,7 +29,7 @@ midi_columns = ['midi_note', 'velocity', 'delta_time']
 max_seq_len = 96
 max_series_len = int(max_seq_len / 2)
 
-version = 310
+version = 0
 subversion = None
 
 batch_size = 256
@@ -201,15 +201,17 @@ def calculate_measures(predicted_sequence, source_sequence):
 
 def main():
     df_final_results = pd.DataFrame()
-    test_mode = "model"
+    test_mode = "midi"
 
     right_hand_tracks_for_validation = ['Piano right', 'Right', 'Track 0', 'Track', 'Voice']
-    model_mode = "my_model"
+    model_mode = "oemer"
     res = "low"
-    midi_folder_path = f"all_data/model_generated/{model_mode}/{res}_res"
+    # midi_folder_path = f"all_data/model_generated/{model_mode}/{res}_res"
+    midi_folder_path = f"src/all_data/model_generated/{model_mode}/{res}_res"
     if model_mode == "scan2notes":
         midi_folder_path = midi_folder_path + "_sorted"
-    midi_source_folder_path = "all_data/model_generated/source_midi"
+    # midi_source_folder_path = "src/all_data/model_generated/source_midi"
+    midi_source_folder_path = "src/all_data/data_to_analyze/midi"
     csv_file = f"src/csv/notes_stats_{model_mode}_{res}_index{version_name}.csv"
     max_seq_len = 96
 
