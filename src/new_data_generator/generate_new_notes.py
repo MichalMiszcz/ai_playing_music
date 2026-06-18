@@ -4,8 +4,8 @@ import os
 from src.music_program.utils.global_variables import WHITE_KEYS
 from src.utils import instances
 
-NUMBER_OF_EXISTING_SONGS = 1024
-NUM_SONGS = 1024 * 3
+NUMBER_OF_EXISTING_SONGS = 4096
+NUM_SONGS = 1024 * 6
 NOTES_PER_MEASURE = 4.0
 TEMPO = 120
 

@@ -20,7 +20,7 @@ def run_audiveris(image_path, output_folder):
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
-    command = ["audiveris", "-batch", "-export", "-option", "org.audiveris.omr.sheet.SheetStub.minInterline=0", "-output", output_folder, image_path]
+    command = ["audiveris", "-batch", "-export", "-output", output_folder, image_path]
 
     print(f"Running oemer with command: {command}")
 
@@ -38,7 +38,7 @@ if __name__ == "__main__":
     new_image_folder_path = "src/all_data/data_to_analyze/hi_scaled_res"
     output_folder_path = "src/all_data/model_generated/audiveris"
     previous_number = 0
-    max_num = 100
+    max_num = 1
     skipped_numbers = []
 
     for folder in os.listdir(image_folder_path):
@@ -56,7 +56,7 @@ if __name__ == "__main__":
                     if not os.path.exists(new_image_path):
                         print("Resizing image")
                         new_size = (img.width * 4, img.height * 4)
-                        img = img.resize(new_size, Image.Resampling.NEAREST)
+                        img = img.resize(new_size, Image.Resampling.NEAREST) # Czy tak może być?
                         img.save(new_image_path)
 
                 image_path = new_image_path
