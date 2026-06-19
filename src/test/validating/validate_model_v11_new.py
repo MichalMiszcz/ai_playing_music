@@ -27,14 +27,14 @@ midi_columns = ['midi_note', 'velocity', 'delta_time']
 
 
 version = 900
-subversion = '011'
+subversion = '020'
 
 max_seq_len = 96
 max_series_len = 32
 
 batch_size = 1
 features_number = 32
-hidden_dim = 64
+hidden_dim = 256
 
 
 version_name = str(version) + '_' + str(subversion) if subversion is not None else str(version)
@@ -87,7 +87,7 @@ def validate():
             staff_list = segment_image(source_image=image)
 
             predicted_seq = []
-            for j, (_, staff) in enumerate(staff_list):
+            for _, (_, staff) in enumerate(staff_list):
                 staff = staff.convert('L')
                 staff = image_transform(staff)
                 staff = staff.to(device)
