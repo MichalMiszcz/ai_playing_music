@@ -1,4 +1,3 @@
-from fontTools.varLib.instancer import __main__
 from ultralytics import YOLO
 from PIL import Image
 

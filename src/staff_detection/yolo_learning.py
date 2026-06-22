@@ -1,15 +1,12 @@
 from ultralytics import YOLO
 
 path_to_images = "src/all_data/labeled_images/data.yaml"
-yolo_version = "yolo11n.pt"
+yolo_version = "yolo26x.pt"
 
-epochs = 10
-patience = 3
-
+epochs = 25
+patience = 0
 batch_size = 8
-
 workers = 4
-
 
 def main():
     model = YOLO(yolo_version)

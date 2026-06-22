@@ -12,9 +12,9 @@ import seaborn as sns
 from src.music_program.utils.global_variables import *
 from src.music_program.model.cnn_model_v11_val import MusicModel
 from src.music_program.dataset.music_image_dataset_11 import MusicImageDataset
-from src.test.testing_scripts.testing_yolo_cutting_image import segment_image
+from src.music_program.utils.yolo_cutting_image import segment_image
 from src.test.validating.counting_errors import count_errors
-from src.test.validating.validate_model import time_series_to_midi_seq, calculate_measures
+from src.music_program.utils.sequence_modifications import time_series_to_midi_seq, calculate_measures
 
 note_to_index = {midi_num: i for i, midi_num in enumerate(WHITE_KEYS_MIDI)}
 velocity_to_index = {midi_num: i for i, midi_num in enumerate(VELOCITY)}
@@ -27,14 +27,14 @@ midi_columns = ['midi_note', 'velocity', 'delta_time']
 
 
 version = 900
-subversion = '020'
+subversion = '03'
 
 max_seq_len = 96
 max_series_len = 32
 
 batch_size = 1
 features_number = 32
-hidden_dim = 256
+hidden_dim = 64
 
 
 version_name = str(version) + '_' + str(subversion) if subversion is not None else str(version)
